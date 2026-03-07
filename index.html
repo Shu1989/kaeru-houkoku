@@ -186,8 +186,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
       <label>担当者名</label>
       <select id="loginMember">
         <option value="">-- 選択 --</option>
-        <option>高橋</option><option>田中</option><option>佐藤</option><option>鈴木</option>
-        <option>伊藤</option><option>渡辺</option><option>山本</option><option>中村</option>
+        <option>船津匡広</option><option>藤井一也</option><option>石渡宏弥</option><option>築城智</option>
+        <option>佐野翔</option><option>北原暢人</option><option>中野草平</option><option>大森圭一郎</option>
         <option value="admin">管理者</option>
       </select>
     </div>
@@ -250,15 +250,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
           <div class="doc-title">📋 書類作成チェック</div>
           <div class="doc-check-row">
             <div class="doc-check-item">
-              <input type="checkbox" id="chkHoukokusho">
+              <input type="checkbox" id="chkHoukokusho" onchange="toggleHoukokushoMsg(this.checked)">
               <label for="chkHoukokusho">報告書が必要</label>
+            </div>
+            <div id="houkokushoMsg" style="display:none;margin-top:10px;padding:10px 12px;background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;font-size:13px;color:#7a5800;line-height:1.6;">
+              📋 お手数ですが、小計LINEに報告内容と写真（タイトル付き）の送付お願いします。
             </div>
           </div>
         </div>
       </div>
       <div class="form-group">
         <label class="fl">場所<span class="req">*</span></label>
-        <div style="position:relative;"><input type="text" id="fPlace" placeholder="施設名・住所を入力して検索" autocomplete="off" oninput="searchPlace(this.value)"><div id="placeSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-top:none;border-radius:0 0 7px 7px;z-index:50;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div></div><div style="font-size:11px;color:var(--text3);margin-top:4px;">📍 入力すると住所候補が表示されます（OpenStreetMap使用）</div>
+        <div style="position:relative;"><input type="text" id="fPlace" placeholder="施設名・住所を入力して検索" autocomplete="off" oninput="searchPlace(this.value)"><div id="placeSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-top:none;border-radius:0 0 7px 7px;z-index:50;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div></div>
       </div>
       <div class="form-group">
         <label class="fl">作業内容<span class="req">*</span></label>
@@ -311,7 +314,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
     <div class="card">
       <div class="card-title"><span></span>メモ</div>
       <div class="form-group">
-        <textarea id="fMemo" placeholder="備考・特記事項など（任意）"></textarea>
+        <textarea id="fMemo" placeholder="備考・特記事項など（任意）&#10;例：複数メンバーでの案件における小計配分など"></textarea>
       </div>
     </div>
 
@@ -418,10 +421,18 @@ let editingRecord = null;
 let editBreakdownRows = [];
 
 // ===== URLパラメータ自動ログイン =====
+const MEMBER_CODES = {
+  '1272':'船津匡広', '2221':'藤井一也', '3140':'石渡宏弥', '4211':'築城智',
+  '5300':'佐野翔',   '6211':'北原暢人', '7710':'中野草平', '8002':'大森圭一郎',
+  '0330':'admin'
+};
+
 function checkUrlLogin(){
   const params = new URLSearchParams(window.location.search);
-  const member = params.get('member');
-  if(!member) return;
+  const code = params.get('member');
+  if(!code) return;
+  // コードからメンバー名に変換
+  const member = MEMBER_CODES[code] || code;
   // メンバーリストに存在するか確認
   const validMembers = [...ALL_MEMBERS, 'admin'];
   if(!validMembers.includes(member)) return;
@@ -429,7 +440,7 @@ function checkUrlLogin(){
   currentUser = member;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
-  document.getElementById('userBadge').textContent = member==='admin'?'👑 管理者':member+' さん';
+  document.getElementById('userBadge').textContent = member==='admin'?'👑 管理者':member;
   document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
   initSelects(); renderBreakdown();
 }
@@ -441,6 +452,11 @@ function buildSelect(id, arr, ph){
   el.innerHTML = `<option value="">-- ${ph} --</option>` + arr.map(v=>`<option>${v}</option>`).join('');
 }
 const REPORT_CLIENTS = ['東洋世田谷第一','東洋世田谷第二','東洋サポート'];
+
+function toggleHoukokushoMsg(checked){
+  const msg = document.getElementById('houkokushoMsg');
+  if(msg) msg.style.display = checked ? 'block' : 'none';
+}
 
 function onClientChange(){
   const val = document.getElementById('fClient').value;
@@ -606,7 +622,7 @@ function doLogin(){
   currentUser=member;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
-  document.getElementById('userBadge').textContent=member==='admin'?'👑 管理者':member+' さん';
+  document.getElementById('userBadge').textContent=member==='admin'?'👑 管理者':member;
   document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
   initSelects(); renderBreakdown();
 }
