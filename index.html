@@ -2785,7 +2785,7 @@ function renderDash(){
   const allMonths = [...new Set(allDone.map(r=>String(r.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
   const monthlyRows = allMonths.length ? allMonths.map(m=>{
     const mRecs = allDone.filter(r=>String(r.date||'').slice(0,7)===m);
-    const mSub  = mRecs.reduce((s,r)=>s+Number(r.subtotal||0),0);
+    const mSub  = mRecs.filter(r=>!/【分配】[^済]/.test(String(r.memo||''))).reduce((s,r)=>s+Number(r.subtotal||0),0);
     const mKeijo= mRecs.reduce((s,r)=>s+getKeijo(r),0);
     const now2 = new Date();
     const thisM = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
@@ -2793,7 +2793,7 @@ function renderDash(){
       <div>
         <span style="font-size:14px;font-weight:700;">${m.replace('-','年')}月</span>
         ${m===thisM?'<span style="font-size:11px;background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:2px 8px;margin-left:6px;">今月</span>':''}
-        <span style="font-size:12px;color:#aaa;margin-left:6px;">${mRecs.length}件</span>
+        <span style="font-size:12px;color:#aaa;margin-left:6px;">${mRecs.filter(r=>!/【分配】[^済]/.test(String(r.memo||''))).length}件</span>
       </div>
       <div style="text-align:right;">
         <div style="font-family:'DM Mono',monospace;font-weight:700;">¥${mSub.toLocaleString()}</div>
