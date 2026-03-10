@@ -2766,6 +2766,7 @@ function renderDash(){
         if(r.nohinshi==='✅')  badges.push('<button data-rid="'+rid+'" data-doc="nohinshi" onclick="markDocDone(this.dataset.rid,this.dataset.doc)" style="background:#f3e8fc;color:#6a1b9a;border:1px solid #ce93d8;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;">納品書 ✕</button>');
         if(r.houkokusho==='✅') badges.push('<button data-rid="'+rid+'" data-doc="houkokusho" onclick="markDocDone(this.dataset.rid,this.dataset.doc)" style="background:#fff8e1;color:#e65100;border:1px solid #ffcc80;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;">報告書 ✕</button>');
         const ridx = dashAllRecords.indexOf(r);
+        const detailBtn = '<button data-ridx="'+ridx+'" onclick="openDetailModal(dashAllRecords[this.dataset.ridx],dashAllRecords[this.dataset.ridx].member)" style="background:#f5f5f5;color:#555;border:1px solid #ddd;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;">詳細</button>';
         const sp = splitPlace(r.place||'');
         const distMatch2 = String(r.memo||'').match(/【分配済】(.+?)へ/);
         const distLabel = distMatch2 ? ' <span style="font-size:11px;background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 6px;">→'+distMatch2[1].replace('admin','かえる')+'へ分配</span>' : '';
@@ -2780,7 +2781,7 @@ function renderDash(){
           +(sp.name?'<div style="font-size:12px;color:#666;margin-bottom:2px;">📍 '+sp.name+'</div>':'')
           +'<div style="font-size:12px;color:#555;margin-bottom:6px;">'+(r.work||'')+'</div>'
           +'<div style="font-size:11px;color:#aaa;margin-bottom:4px;">タップで対応済みに変更</div>'
-          +'<div style="display:flex;gap:4px;flex-wrap:wrap;">'+badges.join('')+'</div>'
+          +'<div style="display:flex;gap:4px;flex-wrap:wrap;">'+detailBtn+badges.join('')+'</div>'
           +'</div>';
       }).join('')}
     </div>` : '';
