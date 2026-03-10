@@ -2683,9 +2683,14 @@ function renderDash(){
 
   // ① 月トータル（分配受取側を除外して二重計上防止）
   const doneRecsRestored = doneRecs; // 復元ロジック不要（スプレッドシートの値が正しい）
-  const totalSubtotal = doneRecs.filter(r=>!/【分配】[^済]/.test(String(r.memo||''))).reduce((s,r)=>s+Number(r.subtotal||0),0);
-  const totalKeijo = doneRecs.filter(r=>!/【分配】[^済]/.test(String(r.memo||''))).reduce((s,r)=>s+getKeijo(r),0);
-  const totalKaisha = totalSubtotal - totalKeijo;
+  const totalSubtotal = doneRecs
+  .filter(r=>!/【分配】[^済]/.test(String(r.memo||'')))
+  .reduce((s,r)=>s+Number(r.subtotal||0),0);
+
+　const totalKeijo = doneRecs
+  .reduce((s,r)=>s+getKeijo(r),0);
+
+　const totalKaisha = totalSubtotal - totalKeijo;
 
   // ② 顧客別（分配受取側を除外・リーダーのsubtotalをそのまま使用）
   const byClient = {};
