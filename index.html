@@ -330,48 +330,78 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     </div>
 
     <div class="card">
-      <div class="card-title"><span></span>内訳</div>
-      <div class="breakdown-list" id="breakdownList"></div>
-      <div class="breakdown-add-area" style="background:var(--surface2);border-radius:10px;padding:14px;margin-top:12px;border:1.5px dashed var(--border);">
-        <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:12px;letter-spacing:0.05em;">── 追加する ──</div>
-        <div style="font-size:12px;color:#7b1fa2;font-weight:700;margin-bottom:4px;">▍ グループ見出し　<span style="font-size:11px;font-weight:400;color:var(--text3);">右の＋で追加</span></div>
-        <div class="select-add-wrap">
-          <select id="groupSelect"></select>
-          <button class="btn-add-option" onclick="addBreakdownGroup()" title="グループを追加" style="background:#7b1fa2;color:white;border-color:#7b1fa2;">＋</button>
-        </div>
-        <button class="btn-add-breakdown-row" onclick="toggleInlineAdd('bdGroupAdd')" style="margin-top:4px;margin-bottom:8px;font-size:12px;">＋ 新規グループ名を追加</button>
-        <div class="inline-add" id="bdGroupAdd">
-          <input type="text" id="bdGroupAddInput" placeholder="グループ名を入力">
-          <button class="btn-confirm" onclick="addGroupOption()">追加</button>
-          <button class="btn-cancel-add" onclick="closeInlineAdd('bdGroupAdd')">×</button>
-        </div>
-        <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px;">▍ 内訳項目　<span style="font-size:11px;font-weight:400;color:var(--text3);">右の＋で追加</span></div>
-        <div class="select-add-wrap">
-          <select id="breakdownSelect"></select>
-          <button class="btn-add-option" onclick="addBreakdownRow()" title="項目を追加" style="background:var(--accent);color:white;border-color:var(--accent);">＋</button>
-        </div>
-        <button class="btn-add-breakdown-row" onclick="toggleInlineAdd('bdItemAdd')" style="margin-top:4px;font-size:12px;">＋ 新規項目名を追加</button>
-        <div class="inline-add" id="bdItemAdd">
-          <input type="text" id="bdItemAddInput" placeholder="項目名を入力">
-          <button class="btn-confirm" onclick="addBreakdownOption()">追加</button>
-          <button class="btn-cancel-add" onclick="closeInlineAdd('bdItemAdd')">×</button>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:8px;">※割引がある場合は各項目の％欄に割引率を入力してください</div>
-      <div id="adjustDiscountArea" style="display:none;align-items:center;gap:8px;margin-top:10px;padding:10px;background:#fff8f8;border:1.5px solid #ffcdd2;border-radius:8px;">
-        <span style="font-size:13px;color:#c62828;font-weight:700;white-space:nowrap;">調整値引</span>
-        <span style="font-size:13px;color:#c62828;">− ¥</span>
-        <input type="number" id="adjustDiscount" placeholder="0" min="0" value=""
-          oninput="calcSubtotal()"
-          style="flex:1;font-family:'DM Mono',monospace;font-size:15px;text-align:right;padding:6px 8px;border:1.5px solid #ffcdd2;border-radius:6px;color:#c62828;">
-        <button onclick="removeAdjustDiscount()" style="background:none;border:none;color:#c62828;font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
-      </div>
-      <button id="adjustDiscountBtn" class="btn-add-breakdown-row" onclick="showAdjustDiscount()" style="margin-top:8px;border-color:#ffcdd2;color:#c62828;font-size:12px;">＋ 調整値引を追加</button>
-      <div class="subtotal-row">
-        <div class="label">小計</div>
-        <div class="amount" id="subtotalDisplay">¥0</div>
-      </div>
+  <div class="card-title"><span></span>内訳</div>
+
+  <!-- グループ一覧 -->
+  <div class="breakdown-list" id="breakdownList"></div>
+
+  <!-- グループ追加エリア（枠外） -->
+  <div class="breakdown-footer-actions" style="margin-top:12px;">
+    <div style="font-size:12px;color:#7b1fa2;font-weight:700;margin-bottom:6px;">
+      グループ見出し
     </div>
+
+    <div class="select-add-wrap">
+      <select id="groupSelect"></select>
+      <button
+        class="btn-add-option"
+        onclick="addBreakdownGroup()"
+        title="グループを追加"
+        style="background:#7b1fa2;color:white;border-color:#7b1fa2;"
+      >＋</button>
+    </div>
+
+    <button
+      class="btn-add-breakdown-row"
+      onclick="toggleInlineAdd('bdGroupAdd')"
+      style="margin-top:8px;font-size:12px;"
+    >
+      ＋ 新規グループ見出しを追加
+    </button>
+
+    <div class="inline-add" id="bdGroupAdd">
+      <input type="text" id="bdGroupAddInput" placeholder="グループ名を入力">
+      <button class="btn-confirm" onclick="addGroupOption()">追加</button>
+      <button class="btn-cancel-add" onclick="closeInlineAdd('bdGroupAdd')">×</button>
+    </div>
+  </div>
+
+  <!-- 調整値引 -->
+  <div id="adjustDiscountArea" style="display:none;align-items:center;gap:8px;margin-top:14px;padding:10px;background:#fff8f8;border:1.5px solid #ffcdd2;border-radius:8px;">
+    <span style="font-size:13px;color:#c62828;font-weight:700;white-space:nowrap;">調整値引</span>
+    <span style="font-size:13px;color:#c62828;">− ¥</span>
+    <input
+      type="number"
+      id="adjustDiscount"
+      placeholder="0"
+      min="0"
+      value=""
+      oninput="calcSubtotal()"
+      style="flex:1;font-family:'DM Mono',monospace;font-size:15px;text-align:right;padding:6px 8px;border:1.5px solid #ffcdd2;border-radius:6px;color:#c62828;">
+    <button
+      onclick="removeAdjustDiscount()"
+      style="background:none;border:none;color:#c62828;font-size:18px;cursor:pointer;padding:0;line-height:1;"
+    >×</button>
+  </div>
+
+  <button
+    id="adjustDiscountBtn"
+    class="btn-add-breakdown-row"
+    onclick="showAdjustDiscount()"
+    style="margin-top:10px;border-color:#ffcdd2;color:#c62828;font-size:12px;"
+  >
+    ＋ 調整値引を追加
+  </button>
+
+  <!-- 区切り線 -->
+  <div style="margin-top:14px;border-top:1px solid var(--border);"></div>
+
+  <!-- 小計 -->
+  <div class="subtotal-row" style="margin-top:10px;">
+    <div class="label">小計</div>
+    <div class="amount" id="subtotalDisplay">¥0</div>
+  </div>
+</div>
 
     <div class="card">
       <div class="card-title"><span></span>部材</div>
@@ -1204,291 +1234,365 @@ function addBreakdownOption(){
 }
 
 // ===== 内訳（入力フォーム） =====
-function addBreakdownRow(){
-  const sel=document.getElementById('breakdownSelect'); const name=sel.value; if(!name) return;
-  breakdownRows.push({id:Date.now(), type:'item', name, price:0, qty:1, discount:0}); renderBreakdown();
-}
-function addBreakdownGroup(){
-  const sel=document.getElementById('groupSelect'); const name=sel?sel.value:'';
-  breakdownRows.push({id:Date.now(), type:'group', name:name}); renderBreakdown();
-}
-function addGroupOption(){
-  const val=document.getElementById('bdGroupAddInput').value.trim(); if(!val) return;
-  if(!lists.bdGroups.includes(val)){ lists.bdGroups.push(val); saveList('anken_bdgroups', lists.bdGroups); }
-  buildSelect('groupSelect', lists.bdGroups, '選択または＋で追加');
-  document.getElementById('groupSelect').value=val; closeInlineAdd('bdGroupAdd');
-}
-function removeBreakdownRow(id){ breakdownRows=breakdownRows.filter(r=>r.id!==id); renderBreakdown(); }
-function renderBreakdown(){
-  document.getElementById('breakdownList').innerHTML = breakdownRows.map(r=>{
-    if(r.type==='group'){
-      return `<div class="bd-group-header">
-        <input type="text" placeholder="グループ名（例：本件料金・一次対応分）" value="${r.name||''}" oninput="updateBdGroup(${r.id},this.value)">
-        <button class="btn-remove-row" onclick="removeBreakdownRow(${r.id})" style="color:rgba(255,255,255,0.8);">×</button>
-      </div>`;
-    }
-    const qty = r.qty||1;
-    const basePrice = Math.round((r.price||0) * qty);
-    const discounted = r.discount>0 ? Math.round(basePrice*(1-r.discount/100)) : null;
-    return `<div class="breakdown-row">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <div class="item-name" style="text-align:left;">${r.name}</div>
-        <button class="btn-remove-row" onclick="removeBreakdownRow(${r.id})">×</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-        <input type="number" placeholder="単価" min="0" value="${r.price||''}"
-          oninput="updateBdPrice(${r.id},this.value)"
-          style="flex:2;min-width:0;font-family:'DM Mono',monospace;font-size:15px;text-align:right;" title="単価">
-        <span style="font-size:12px;color:var(--text3);flex-shrink:0;">×</span>
-        <input type="number" placeholder="1" min="1" value="${r.qty||1}"
-          oninput="updateBdQty(${r.id},this.value)"
-          style="width:56px;font-size:14px;text-align:right;" title="数量">
-        <span style="font-size:12px;color:var(--text3);flex-shrink:0;">=</span>
-        <span id="bd-qty-total-${r.id}" style="font-family:'DM Mono',monospace;font-size:14px;color:#333;font-weight:700;flex-shrink:0;">¥${basePrice.toLocaleString()}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:12px;color:var(--text3);">割引</span>
-        <input type="number" placeholder="0" min="0" max="100" value="${r.discount||''}"
-          oninput="updateBdDiscount(${r.id},this.value)"
-          style="width:60px;font-size:14px;text-align:right;" title="割引率(%)">
-        <span style="font-size:12px;color:var(--text3);flex-shrink:0;">%</span>
-        <span class="bd-after-discount" id="bd-after-${r.id}" style="font-size:13px;flex:1;text-align:right;visibility:${discounted!==null?'visible':'hidden'};">${discounted!==null?'→ ¥'+discounted.toLocaleString():'→ ¥0'}</span>
-      </div>
-    </div>`;
-  }).join('');
-  calcSubtotal();
-}
-function updateBdGroup(id,val){ const r=breakdownRows.find(r=>r.id===id); if(r) r.name=val; }
-function updateBdPrice(id,val){ const r=breakdownRows.find(r=>r.id===id); if(r){ r.price=Number(val)||0; calcSubtotal(); updateQtyDisplay(id); updateDiscountDisplay(id); } }
+let breakdownRows = [];
 
-function updateQtyDisplay(id){
-  const r=breakdownRows.find(r=>r.id===id); if(!r) return;
-  const el=document.getElementById('bd-qty-total-'+id);
-  if(el) el.textContent='¥'+Math.round((r.price||0)*(r.qty||1)).toLocaleString();
-}
-function updateBdQty(id,val){ const r=breakdownRows.find(r=>r.id===id); if(r){ r.qty=Number(val)||1; calcSubtotal(); updateDiscountDisplay(id); updateQtyDisplay(id); } }
-function updateBdDiscount(id,val){ const r=breakdownRows.find(r=>r.id===id); if(r){ r.discount=Number(val)||0; calcSubtotal(); updateDiscountDisplay(id); } }
-function updateDiscountDisplay(id){
-  const r=breakdownRows.find(r=>r.id===id); if(!r) return;
-  const el=document.getElementById('bd-after-'+id);
-  if(!el) return;
-  if(r.discount>0){
-    const base=Math.round((r.price||0)*(r.qty||1));
-    const d=Math.round(base*(1-r.discount/100));
-    el.textContent='→¥'+d.toLocaleString();
-    el.style.visibility='visible';
-  } else {
-    el.textContent='→¥0';
-    el.style.visibility='hidden';
+// 初期グループを保証
+function ensureDefaultBreakdownGroup(){
+  if (!breakdownRows.some(r => r.type === 'group')) {
+    breakdownRows.push({
+      id: Date.now(),
+      type: 'group',
+      name: '本件料金'
+    });
   }
 }
-function showAdjustDiscount(){
-  document.getElementById('adjustDiscountArea').style.display='flex';
-  document.getElementById('adjustDiscountBtn').style.display='none';
-  document.getElementById('adjustDiscount').focus();
+
+// グループ追加
+function addBreakdownGroup(){
+  const sel = document.getElementById('groupSelect');
+  const name = (sel && sel.value) ? sel.value : '';
+  breakdownRows.push({
+    id: Date.now(),
+    type: 'group',
+    name: name || '新規グループ'
+  });
+  renderBreakdown();
 }
-function removeAdjustDiscount(){
-  document.getElementById('adjustDiscountArea').style.display='none';
-  document.getElementById('adjustDiscountBtn').style.display='block';
-  document.getElementById('adjustDiscount').value='';
+
+// グループ名候補を追加
+function addGroupOption(){
+  const val = document.getElementById('bdGroupAddInput').value.trim();
+  if(!val) return;
+  if(!lists.bdGroups.includes(val)){
+    lists.bdGroups.push(val);
+    saveList('anken_bdgroups', lists.bdGroups);
+  }
+  buildSelect('groupSelect', lists.bdGroups, '選択または＋で追加');
+  document.getElementById('groupSelect').value = val;
+  closeInlineAdd('bdGroupAdd');
+}
+
+// グループ内に項目追加
+function addBreakdownItemToGroup(groupId, itemName){
+  const name = (itemName || '').trim();
+  if(!name) return;
+
+  const idx = breakdownRows.findIndex(r => r.id === groupId && r.type === 'group');
+  if(idx < 0) return;
+
+  breakdownRows.splice(idx + 1, 0, {
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    type: 'item',
+    groupId: groupId,
+    name: name,
+    price: 0,
+    qty: 1,
+    discount: 0,
+    discountOpen: false
+  });
+
+  renderBreakdown();
+}
+
+// グループ内でselectから追加
+function addBreakdownRow(groupId){
+  const sel = document.getElementById('breakdownSelect_' + groupId);
+  if(!sel) return;
+  const name = sel.value;
+  if(!name) return;
+  addBreakdownItemToGroup(groupId, name);
+}
+
+// グループ内で新規項目追加UIを開閉
+function toggleBdItemAdd(groupId){
+  const el = document.getElementById('bdItemAdd_' + groupId);
+  if(!el) return;
+  const isOpen = el.style.display === 'flex';
+  el.style.display = isOpen ? 'none' : 'flex';
+  if(!isOpen){
+    const input = document.getElementById('bdItemAddInput_' + groupId);
+    if(input){
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
+// グループ内で新規項目を保存して追加
+function addBreakdownOption(groupId){
+  const input = document.getElementById('bdItemAddInput_' + groupId);
+  if(!input) return;
+  const val = input.value.trim();
+  if(!val) return;
+
+  if(!lists.bdItems.includes(val)){
+    lists.bdItems.push(val);
+    saveList('anken_bditems', lists.bdItems);
+  }
+
+  addBreakdownItemToGroup(groupId, val);
+}
+
+// 削除
+function removeBreakdownRow(id){
+  const target = breakdownRows.find(r => r.id === id);
+  if(!target) return;
+
+  if(target.type === 'group'){
+    // グループ削除時は配下項目も消す
+    breakdownRows = breakdownRows.filter(r => r.id !== id && r.groupId !== id);
+    if(!breakdownRows.some(r => r.type === 'group')){
+      ensureDefaultBreakdownGroup();
+    }
+  } else {
+    breakdownRows = breakdownRows.filter(r => r.id !== id);
+  }
+
+  renderBreakdown();
+}
+
+// 描画
+function renderBreakdown(){
+  ensureDefaultBreakdownGroup();
+
+  const listEl = document.getElementById('breakdownList');
+  if(!listEl) return;
+
+  const groups = breakdownRows.filter(r => r.type === 'group');
+
+  listEl.innerHTML = groups.map(group => {
+    const items = breakdownRows.filter(r => r.type === 'item' && r.groupId === group.id);
+
+    const itemsHtml = items.map(r => {
+      const qty = r.qty || 1;
+      const basePrice = Math.round((r.price || 0) * qty);
+      const discounted = r.discount > 0 ? Math.round(basePrice * (1 - r.discount / 100)) : null;
+      const isDiscountOpen = !!r.discountOpen;
+
+      return `
+        <div class="breakdown-row">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div class="item-name" style="text-align:left;">${r.name}</div>
+            <button class="btn-remove-row" onclick="removeBreakdownRow(${r.id})">×</button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <input
+              type="number"
+              placeholder="単価"
+              min="0"
+              value="${r.price || ''}"
+              oninput="updateBdPrice(${r.id},this.value)"
+              style="flex:2;min-width:0;font-family:'DM Mono',monospace;font-size:15px;text-align:right;"
+              title="単価"
+            >
+            <span style="font-size:12px;color:var(--text3);flex-shrink:0;">×</span>
+            <input
+              type="number"
+              placeholder="1"
+              min="1"
+              value="${r.qty || 1}"
+              oninput="updateBdQty(${r.id},this.value)"
+              style="width:56px;font-size:14px;text-align:right;"
+              title="数量"
+            >
+            <span style="font-size:12px;color:var(--text3);flex-shrink:0;">=</span>
+            <span
+              id="bd-qty-total-${r.id}"
+              style="font-family:'DM Mono',monospace;font-size:14px;color:#333;font-weight:700;flex-shrink:0;"
+            >¥${basePrice.toLocaleString()}</span>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button
+              type="button"
+              onclick="toggleBdDiscount(${r.id})"
+              style="background:none;border:none;color:#888;font-size:12px;cursor:pointer;padding:0;"
+            >
+              ${isDiscountOpen ? '割引を閉じる' : '割引'}
+            </button>
+          </div>
+
+          <div id="bd-discount-row-${r.id}" style="display:${isDiscountOpen ? 'flex' : 'none'};align-items:center;gap:6px;margin-top:6px;">
+            <span style="font-size:12px;color:var(--text3);">割引</span>
+            <input
+              type="number"
+              placeholder="0"
+              min="0"
+              max="100"
+              value="${r.discount || ''}"
+              oninput="updateBdDiscount(${r.id},this.value)"
+              style="width:60px;font-size:14px;text-align:right;"
+              title="割引率(%)"
+            >
+            <span style="font-size:12px;color:var(--text3);flex-shrink:0;">%</span>
+            <span
+              class="bd-after-discount"
+              id="bd-after-${r.id}"
+              style="font-size:13px;flex:1;text-align:right;visibility:${discounted !== null ? 'visible' : 'hidden'};"
+            >${discounted !== null ? '→ ¥' + discounted.toLocaleString() : '→ ¥0'}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="bd-group-card" style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;">
+        <div class="bd-group-header" style="margin:0 0 10px 0;">
+          <input
+            type="text"
+            placeholder="グループ名（例：本件料金・一次対応分）"
+            value="${group.name || ''}"
+            oninput="updateBdGroup(${group.id},this.value)"
+          >
+          <button class="btn-remove-row" onclick="removeBreakdownRow(${group.id})" style="color:rgba(255,255,255,0.8);">×</button>
+        </div>
+
+        <div class="bd-group-items">
+          ${itemsHtml || `<div style="font-size:12px;color:#aaa;padding:4px 2px 8px;">内訳はまだありません</div>`}
+        </div>
+
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+          <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:6px;">内訳を追加</div>
+
+          <div class="select-add-wrap">
+            <select id="breakdownSelect_${group.id}">
+              <option value="">-- 選択または追加 --</option>
+              ${lists.bdItems.map(v => `<option value="${v}">${v}</option>`).join('')}
+            </select>
+            <button
+              class="btn-add-option"
+              onclick="addBreakdownRow(${group.id})"
+              title="項目を追加"
+              style="background:var(--accent);color:white;border-color:var(--accent);"
+            >＋</button>
+          </div>
+
+          <button
+            class="btn-add-breakdown-row"
+            onclick="toggleBdItemAdd(${group.id})"
+            style="margin-top:8px;font-size:12px;"
+          >
+            ＋ 新規項目名を追加
+          </button>
+
+          <div class="inline-add" id="bdItemAdd_${group.id}" style="display:none;margin-top:8px;">
+            <input type="text" id="bdItemAddInput_${group.id}" placeholder="項目名を入力">
+            <button class="btn-confirm" onclick="addBreakdownOption(${group.id})">追加</button>
+            <button class="btn-cancel-add" onclick="toggleBdItemAdd(${group.id})">×</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   calcSubtotal();
 }
+
+function updateBdGroup(id,val){
+  const r = breakdownRows.find(r => r.id === id);
+  if(r) r.name = val;
+}
+
+function updateBdPrice(id,val){
+  const r = breakdownRows.find(r => r.id === id);
+  if(r){
+    r.price = Number(val) || 0;
+    calcSubtotal();
+    updateQtyDisplay(id);
+    updateDiscountDisplay(id);
+  }
+}
+
+function updateQtyDisplay(id){
+  const r = breakdownRows.find(r => r.id === id);
+  if(!r) return;
+  const el = document.getElementById('bd-qty-total-' + id);
+  if(el) el.textContent = '¥' + Math.round((r.price || 0) * (r.qty || 1)).toLocaleString();
+}
+
+function updateBdQty(id,val){
+  const r = breakdownRows.find(r => r.id === id);
+  if(r){
+    r.qty = Number(val) || 1;
+    calcSubtotal();
+    updateDiscountDisplay(id);
+    updateQtyDisplay(id);
+  }
+}
+
+function updateBdDiscount(id,val){
+  const r = breakdownRows.find(r => r.id === id);
+  if(r){
+    r.discount = Number(val) || 0;
+    calcSubtotal();
+    updateDiscountDisplay(id);
+  }
+}
+
+function toggleBdDiscount(id){
+  const r = breakdownRows.find(r => r.id === id);
+  if(!r) return;
+  r.discountOpen = !r.discountOpen;
+  renderBreakdown();
+}
+
+function updateDiscountDisplay(id){
+  const r = breakdownRows.find(r => r.id === id);
+  if(!r) return;
+  const el = document.getElementById('bd-after-' + id);
+  if(!el) return;
+
+  if(r.discount > 0){
+    const base = Math.round((r.price || 0) * (r.qty || 1));
+    const d = Math.round(base * (1 - r.discount / 100));
+    el.textContent = '→ ¥' + d.toLocaleString();
+    el.style.visibility = 'visible';
+  } else {
+    el.textContent = '→ ¥0';
+    el.style.visibility = 'hidden';
+  }
+}
+
+function showAdjustDiscount(){
+  document.getElementById('adjustDiscountArea').style.display = 'flex';
+  document.getElementById('adjustDiscountBtn').style.display = 'none';
+  document.getElementById('adjustDiscount').focus();
+}
+
+function removeAdjustDiscount(){
+  document.getElementById('adjustDiscountArea').style.display = 'none';
+  document.getElementById('adjustDiscountBtn').style.display = 'block';
+  document.getElementById('adjustDiscount').value = '';
+  calcSubtotal();
+}
+
 function showEAdjustDiscount(){
   document.getElementById('eAdjustDiscountArea').style.display='flex';
   document.getElementById('eAdjustDiscountBtn').style.display='none';
   document.getElementById('eAdjustDiscount').focus();
 }
+
 function removeEAdjustDiscount(){
   document.getElementById('eAdjustDiscountArea').style.display='none';
   document.getElementById('eAdjustDiscountBtn').style.display='block';
   document.getElementById('eAdjustDiscount').value='';
   calcEditSubtotal();
 }
+
 function calcSubtotal(){
-  const total=breakdownRows.filter(r=>r.type!=='group').reduce((s,r)=>{
-    const base = Math.round((r.price||0)*(r.qty||1)); const price = r.discount>0 ? Math.round(base*(1-r.discount/100)) : base;
-    return s+price;
-  },0);
-  const adj = Number(document.getElementById('adjustDiscount')?.value)||0;
+  const total = breakdownRows
+    .filter(r => r.type === 'item')
+    .reduce((s,r)=>{
+      const base = Math.round((r.price || 0) * (r.qty || 1));
+      const price = r.discount > 0 ? Math.round(base * (1 - r.discount / 100)) : base;
+      return s + price;
+    }, 0);
+
+  const adj = Number(document.getElementById('adjustDiscount')?.value) || 0;
   const net = total - adj;
-  document.getElementById('subtotalDisplay').textContent='¥'+net.toLocaleString(); return net;
-}
-
-// ===== 内訳（編集モーダル） =====
-
-// 編集モーダル用：selectに値をセット（なければoptionを追加）
-function setSelectOrAdd(id, val, arr){
-  const sel = document.getElementById(id);
-  if(!sel || !val) return;
-  // すでにoptionがあるか確認
-  const exists = Array.from(sel.options).some(o=>o.value===val);
-  if(!exists){
-    const opt = document.createElement('option');
-    opt.value = val; opt.textContent = val;
-    sel.appendChild(opt);
-  }
-  sel.value = val;
-}
-
-// 編集モーダル：追加ボタン
-function addEditOption(selId, inputId, areaId, listKey){
-  const area = document.getElementById(areaId);
-  if(area.style.display==='none'||!area.style.display){
-    area.style.display='flex'; return;
-  }
-  const val = document.getElementById(inputId).value.trim();
-  if(!val) return;
-  if(!lists[listKey].includes(val)){
-    lists[listKey].push(val);
-    saveList('anken_'+listKey, lists[listKey]);
-    buildSelect(selId, lists[listKey], '選択または＋で追加');
-    // メインフォームのselectも更新
-    initSelects();
-  }
-  document.getElementById(selId).value = val;
-  area.style.display = 'none';
-  document.getElementById(inputId).value = '';
-}
-
-// 編集モーダル：内訳をselectから追加
-function addEditBreakdownFromSelect(){
-  const sel = document.getElementById('eBreakdownSelect');
-  const val = sel.value;
-  if(!val) return;
-  editBreakdownRows.push({name:val, price:0, qty:1, discount:0, id:Date.now()});
-  renderEditBreakdown();
-}
-
-// 編集モーダル：内訳を新規テキストから追加
-function addEditBreakdownFromNew(){
-  const inp = document.getElementById('eBreakdownNewName');
-  const val = inp.value.trim();
-  if(!val) return;
-  if(!lists.bdItems.includes(val)){
-    lists.bdItems.push(val);
-    saveList('anken_bditems', lists.bdItems);
-    buildSelect('breakdownSelect', lists.bdItems, '選択または＋で追加');
-    buildSelect('eBreakdownSelect', lists.bdItems, '内訳項目を選択');
-  }
-  editBreakdownRows.push({name:val, price:0, qty:1, discount:0, id:Date.now()});
-  renderEditBreakdown();
-  inp.value = '';
-}
-
-// 編集モーダル：グループ見出しを追加
-function addEditGroupRow(){
-  const sel = document.getElementById('eGroupSelect');
-  const val = sel.value;
-  if(!val) return;
-  editBreakdownRows.push({name:'【'+val+'】', price:0, qty:1, discount:0, id:Date.now()});
-  renderEditBreakdown();
-}
-
-// ===== 編集モーダル 作業内容タグ =====
-let eSelectedWorks = [];
-
-function addEWorkTag(){
-  const sel = document.getElementById('eWork');
-  const val = sel.value;
-  if(!val) return;
-  if(eSelectedWorks.includes(val)){ sel.value=''; return; }
-  eSelectedWorks.push(val);
-  renderEWorkTags();
-  sel.value='';
-}
-
-function removeEWorkTag(val){
-  eSelectedWorks = eSelectedWorks.filter(w=>w!==val);
-  renderEWorkTags();
-}
-
-function renderEWorkTags(){
-  const box = document.getElementById('eWorkTagsSelected');
-  if(!box) return;
-  box.innerHTML = eSelectedWorks.map(w=>
-    '<div class="work-tag">'+w
-    +'<button data-w="'+encodeURIComponent(w)+'" onclick="removeEWorkTag(decodeURIComponent(this.dataset.w))">×</button>'
-    +'</div>'
-  ).join('');
-}
-
-function toggleEWorkAdd(){
-  const area = document.getElementById('eWorkAdd');
-  area.style.display = area.style.display==='none'||!area.style.display ? 'flex' : 'none';
-  if(area.style.display==='flex') document.getElementById('eWorkAddInput').focus();
-}
-
-function addEWorkOption(){
-  const inp = document.getElementById('eWorkAddInput');
-  const val = inp.value.trim();
-  if(!val){ inp.focus(); return; }
-  if(!lists.works.includes(val)){
-    lists.works.push(val);
-    saveList('anken_works', lists.works);
-    buildSelect('eWork', lists.works, '-- 選択して追加 --');
-    buildWorkSelect(); // メインフォームも更新
-  }
-  if(!eSelectedWorks.includes(val)){ eSelectedWorks.push(val); renderEWorkTags(); }
-  document.getElementById('eWorkAdd').style.display = 'none';
-  inp.value = '';
-}
-function renderEditBreakdown(){
-  document.getElementById('eBreakdownList').innerHTML = editBreakdownRows.map((r,i)=>{
-    const isGroup = r.name.startsWith('【')&&r.name.endsWith('】');
-    if(isGroup) return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;">'
-      +'<span style="flex:1;font-weight:700;color:#7c3aed;font-size:13px;">'+r.name+'</span>'
-      +'<button class="btn-remove-row" data-idx="'+i+'" onclick="editBreakdownRows.splice(this.dataset.idx,1);renderEditBreakdown()">×</button>'
-      +'</div>';
-    const qty=r.qty||1;
-    const basePrice=Math.round((r.price||0)*qty);
-    const discounted=r.discount>0?Math.round(basePrice*(1-r.discount/100)):null;
-    return '<div class="breakdown-row">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-        +'<div class="item-name" style="text-align:left;">'+r.name+'</div>'
-        +'<button class="btn-remove-row" data-idx="'+i+'" onclick="editBreakdownRows.splice(this.dataset.idx,1);renderEditBreakdown()">×</button>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
-        +'<input type="number" placeholder="単価" min="0" value="'+(r.price||'')+'" data-idx="'+i+'" oninput="editBreakdownRows[this.dataset.idx].price=Number(this.value)||0;calcEditSubtotal();updateEBdQtyDisplay('+i+')" style="flex:2;min-width:0;font-family:DM Mono,monospace;font-size:15px;text-align:right;">'
-        +'<span style="font-size:12px;color:var(--text3);flex-shrink:0;">×</span>'
-        +'<input type="number" placeholder="1" min="1" value="'+qty+'" data-idx="'+i+'" oninput="editBreakdownRows[this.dataset.idx].qty=Number(this.value)||1;calcEditSubtotal();updateEBdQtyDisplay('+i+')" style="width:56px;font-size:14px;text-align:right;">'
-        +'<span style="font-size:12px;color:var(--text3);flex-shrink:0;">=</span>'
-        +'<span id="ebd-qty-total-'+i+'" style="font-family:DM Mono,monospace;font-size:14px;color:#333;font-weight:700;flex-shrink:0;">¥'+basePrice.toLocaleString()+'</span>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px;">'
-        +'<span style="font-size:12px;color:var(--text3);">割引</span>'
-        +'<input type="number" placeholder="0" min="0" max="100" value="'+(r.discount||'')+'" data-idx="'+i+'" oninput="editBreakdownRows[this.dataset.idx].discount=Number(this.value)||0;calcEditSubtotal();updateEBdDiscountDisplay('+i+')" style="width:60px;font-size:14px;text-align:right;">'
-        +'<span style="font-size:12px;color:var(--text3);flex-shrink:0;">%</span>'
-        +'<span id="ebd-after-'+i+'" style="font-size:13px;flex:1;text-align:right;visibility:'+(discounted!==null?'visible':'hidden')+';">'+(discounted!==null?'→ ¥'+discounted.toLocaleString():'→ ¥0')+'</span>'
-      +'</div>'
-    +'</div>';
-  }).join('');
-  calcEditSubtotal();
-}
-
-function updateEBdQtyDisplay(i){
-  const r=editBreakdownRows[i]; if(!r) return;
-  const base=Math.round((r.price||0)*(r.qty||1));
-  const el=document.getElementById('ebd-qty-total-'+i);
-  if(el) el.textContent='¥'+base.toLocaleString();
-  updateEBdDiscountDisplay(i);
-}
-function updateEBdDiscountDisplay(i){
-  const r=editBreakdownRows[i]; if(!r) return;
-  const base=Math.round((r.price||0)*(r.qty||1));
-  const el=document.getElementById('ebd-after-'+i);
-  if(!el) return;
-  if(r.discount>0){ el.textContent='→¥'+Math.round(base*(1-r.discount/100)).toLocaleString(); el.style.visibility='visible'; }
-  else { el.textContent='→¥0'; el.style.visibility='hidden'; }
-}
-function addEditBreakdownRow(){ editBreakdownRows.push({name:'',price:0,qty:1,discount:0}); renderEditBreakdown(); }
-function calcEditSubtotal(){
-  const total=editBreakdownRows.filter(r=>!(r.name.startsWith('【')&&r.name.endsWith('】'))).reduce((s,r)=>{
-    const base=Math.round((r.price||0)*(r.qty||1));
-    return s+(r.discount>0?Math.round(base*(1-r.discount/100)):base);
-  },0);
-  const adj = Number(document.getElementById('eAdjustDiscount')?.value)||0;
-  const net = total - adj;
-  document.getElementById('eSubtotalDisplay').textContent='¥'+net.toLocaleString(); return net;
+  document.getElementById('subtotalDisplay').textContent = '¥' + net.toLocaleString();
+  return net;
 }
 
 // ===== ログイン =====
