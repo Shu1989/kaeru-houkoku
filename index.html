@@ -1385,8 +1385,8 @@ function addBreakdownRow(groupId){
   const q = String(keyword || '').trim().toLowerCase();
 
   const items = !q
-    ? lists.bdItems
-    : lists.bdItems.filter(item => item.name.toLowerCase().includes(q));
+  ? lists.bdItems.slice(0, 5)
+  : lists.bdItems.filter(item => item.name.toLowerCase().includes(q));
 
   if(!items.length){
     return `
