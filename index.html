@@ -2173,7 +2173,7 @@ function toggleListSection(sectionId, arrowId){
 function renderListEditor(){
   renderListEditorSection('listEditorClients', 'clients', 'anken_clients');
   renderListEditorSection('listEditorWorks', 'works', 'anken_works');
-  renderListEditorSection('listEditorBdItems', 'bdItems', 'anken_bditems');
+  renderBdItemsEditor();
 }
 
 function renderListEditorSection(containerId, listKey, storageKey){
@@ -2202,6 +2202,52 @@ function renderListEditorSection(containerId, listKey, storageKey){
   ).join('');
 }
 
+  function renderBdItemsEditor(){
+  const el = document.getElementById('listEditorBdItems');
+  if(!el) return;
+
+  const arr = lists.bdItems || [];
+  if(arr.length === 0){
+    el.innerHTML = '<div style="color:#aaa;font-size:13px;padding:6px;">項目なし</div>';
+    return;
+  }
+
+  el.innerHTML = arr.map((item, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px;background:#f9f9f9;border-radius:8px;">
+      <input
+        type="text"
+        value="${item.name}"
+        oninput="lists.bdItems[${i}].name=this.value"
+        style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;"
+        placeholder="項目名"
+      >
+      <input
+        type="number"
+        value="${item.defaultPrice || ''}"
+        min="0"
+        oninput="lists.bdItems[${i}].defaultPrice=Number(this.value)||0"
+        style="width:110px;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;text-align:right;font-family:'DM Mono',monospace;"
+        placeholder="単価"
+      >
+      <button
+        onclick="removeBdItem(${i})"
+        style="padding:6px 10px;background:#ffebee;color:#c62828;border:none;border-radius:6px;font-size:13px;cursor:pointer;"
+      >削除</button>
+    </div>
+  `).join('');
+}
+
+function removeBdItem(idx){
+  const item = lists.bdItems[idx];
+  if(!item) return;
+  if(!confirm('「' + item.name + '」を削除しますか？')) return;
+
+  lists.bdItems.splice(idx, 1);
+  saveList('anken_bditems', lists.bdItems);
+  renderBdItemsEditor();
+  initSelects();
+}
+
 function listEditorMove(listKey, storageKey, idx, dir){
   const arr = lists[listKey];
   const newIdx = dir==='up' ? idx-1 : idx+1;
@@ -2225,14 +2271,32 @@ function listEditorAdd(listKey, inputId){
   const inp = document.getElementById(inputId);
   const val = inp.value.trim();
   if(!val) return;
-  const storageMap = {works:'anken_works', bdItems:'anken_bditems', clients:'anken_clients'};
-  const storageKey = storageMap[listKey] || 'anken_'+listKey;
+
+  const storageMap = {
+    works:'anken_works',
+    bdItems:'anken_bditems',
+    clients:'anken_clients'
+  };
+  const storageKey = storageMap[listKey] || 'anken_' + listKey;
+
+  if(listKey === 'bdItems'){
+    if(!lists.bdItems.some(item => item.name === val)){
+      lists.bdItems.push({ name: val, defaultPrice: 0 });
+      saveList(storageKey, lists.bdItems);
+      renderBdItemsEditor();
+      initSelects();
+    }
+    inp.value = '';
+    return;
+  }
+
   if(!lists[listKey].includes(val)){
     lists[listKey].push(val);
     saveList(storageKey, lists[listKey]);
     renderListEditor();
     initSelects();
   }
+
   inp.value = '';
 }
 
