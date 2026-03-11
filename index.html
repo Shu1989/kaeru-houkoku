@@ -370,12 +370,21 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
   style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"
 ></div>
         
-        <div class="select-add-wrap">
-          <select id="fWork" onchange="addWorkTag()">
-            <option value="">-- 選択または＋で追加 --</option>
-          </select>
-          <button class="btn-add-option" onclick="toggleInlineAdd('workAdd')" title="新規追加">＋</button>
-        </div>
+       <div
+  onclick="toggleInlineAdd('workAdd')"
+  style="
+    border:2px dashed #ddd;
+    border-radius:10px;
+    padding:12px;
+    text-align:center;
+    font-size:14px;
+    color:#777;
+    cursor:pointer;
+    margin-top:6px;
+  "
+>
+  ＋ 新規作業内容を追加
+</div>
         <div class="inline-add" id="workAdd">
           <input type="text" id="workAddInput" placeholder="作業内容を入力">
           <button class="btn-confirm" onclick="addWorkOption()">追加</button>
@@ -1299,7 +1308,7 @@ function renderWorkTags(){
   const q = String(keyword || '').trim().toLowerCase();
 
   const items = !q
-    ? lists.works.slice(0,5)
+    ? lists.works.slice(0,4)
     : lists.works.filter(w => w.toLowerCase().includes(q));
 
   if(!items.length){
@@ -1327,6 +1336,7 @@ function renderWorkTags(){
           border:1px solid var(--border);
           border-radius:8px;
           background:#fff;
+          color:var(--text);
           font-size:13px;
           cursor:pointer;
         "
