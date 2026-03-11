@@ -2311,16 +2311,34 @@ function bumpToTop(listKey, storageKey, val){
   saveList(storageKey, arr);
 }
 
+  function bumpBdItemToTop(name){
+  if(!name) return;
+
+  const idx = lists.bdItems.findIndex(item => item.name === name);
+  if(idx <= 0) return;
+
+  const [item] = lists.bdItems.splice(idx, 1);
+  lists.bdItems.unshift(item);
+
+  saveList('anken_bditems', lists.bdItems);
+}
+
 function bumpUsedItems(client, works, bdNames){
   // 顧客
   bumpToTop('clients', 'anken_clients', client);
+
   // 作業内容（複数）
-  // 後から追加したものが先頭になるよう逆順で処理
-  const worksArr = (works||'').split(/[、,，]/).map(w=>w.trim()).filter(Boolean).reverse();
-  worksArr.forEach(w=> bumpToTop('works', 'anken_works', w));
-  // 内訳項目
-  bdNames.forEach(n=> bumpToTop('bdItems', 'anken_bditems', n));
-  // セレクトを再構築
+  const worksArr = (works || '')
+    .split(/[、,，]/)
+    .map(w => w.trim())
+    .filter(Boolean)
+    .reverse();
+
+  worksArr.forEach(w => bumpToTop('works', 'anken_works', w));
+
+  // 内訳項目（bdItems はオブジェクト配列なので専用処理）
+  bdNames.forEach(n => bumpBdItemToTop(n));
+
   initSelects();
 }
 // ===== メンバー月次一覧 アコーディオン =====
