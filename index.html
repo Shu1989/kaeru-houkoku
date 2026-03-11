@@ -354,6 +354,22 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       <div class="form-group">
         <label class="fl">作業内容<span class="req">*</span></label>
         <div id="workTagsSelected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0;"></div>
+
+　　　　<div style="margin-bottom:8px;">
+  <input
+    type="text"
+    id="workSearch"
+    placeholder="作業内容を検索"
+    oninput="renderWorkCandidateList(this.value)"
+    style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);"
+  >
+</div>
+
+<div
+  id="workCandidateList"
+  style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"
+></div>
+        
         <div class="select-add-wrap">
           <select id="fWork" onchange="addWorkTag()">
             <option value="">-- 選択または＋で追加 --</option>
@@ -1151,7 +1167,7 @@ async function checkUrlLogin(){
   if(adminArea) adminArea.style.display = member==='admin' ? '' : 'none';
   document.getElementById('dashTabBtn').style.display    = 'inline-block'; // 全員表示
   setTimeout(initPlaceAutocomplete, 300);
-  initSelects(); renderBreakdown();
+  initSelects(); renderBreakdown(); renderWorkCandidateList('');
 }
 
 // ===== セレクト =====
@@ -1276,6 +1292,68 @@ function renderWorkTags(){
       ${w}
       <button onclick="removeWorkTag('${w.replace(/'/g,"\'")}')">×</button>
     </div>`).join('');
+}
+
+  function renderWorkCandidates(keyword){
+
+  const q = String(keyword || '').trim().toLowerCase();
+
+  const items = !q
+    ? lists.works.slice(0,5)
+    : lists.works.filter(w => w.toLowerCase().includes(q));
+
+  if(!items.length){
+    return `
+      <div style="font-size:12px;color:#aaa;padding:8px 4px;">
+        候補がありません
+      </div>
+    `;
+  }
+
+  const label = !q ? '最近使った項目' : '候補';
+
+  return `
+    <div style="font-size:11px;color:#888;margin-bottom:4px;">
+      ${label}
+    </div>
+    ${items.map(name => `
+      <button
+        type="button"
+        onclick="addWorkCandidate('${name.replace(/'/g,"\\'")}')"
+        style="
+          width:100%;
+          text-align:left;
+          padding:10px 12px;
+          border:1px solid var(--border);
+          border-radius:8px;
+          background:#fff;
+          font-size:13px;
+          cursor:pointer;
+        "
+      >
+        ${name}
+      </button>
+    `).join('')}
+  `;
+}
+
+function renderWorkCandidateList(keyword){
+  const list = document.getElementById('workCandidateList');
+  if(!list) return;
+  list.innerHTML = renderWorkCandidates(keyword);
+}
+
+function addWorkCandidate(name){
+  const select = document.getElementById('fWork');
+  if(!select) return;
+
+  select.value = name;
+  addWorkTag();
+
+  const search = document.getElementById('workSearch');
+  if(search) search.value = '';
+
+  renderWorkCandidateList('');
 }
 
 function addWorkOption(){
@@ -1765,7 +1843,7 @@ function doLogin(){
   document.getElementById('mainTabs').style.display='flex';
   document.getElementById('userBadge').textContent=member==='admin'?'👑 かえる':member;
   // 日付は空白のまま
-  initSelects(); renderBreakdown();
+  initSelects(); renderBreakdown(); renderWorkCandidateList('');
 }
 function showLoginError(msg){ const el=document.getElementById('loginError'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 function doLogout(){ currentUser=null; document.getElementById('appScreen').style.display='none'; document.getElementById('mainHeader').style.display='none'; document.getElementById('mainTabs').style.display='none'; document.getElementById('loginScreen').style.display='flex'; document.getElementById('loginPass').value=''; document.getElementById('loginMember').value=''; breakdownRows=[]; }
