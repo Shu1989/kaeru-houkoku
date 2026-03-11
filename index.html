@@ -1369,11 +1369,12 @@ function renderWorkCandidateList(keyword){
 }
 
 function addWorkCandidate(name){
-  const select = document.getElementById('fWork');
-  if(!select) return;
+  if(!name) return;
 
-  select.value = name;
-  addWorkTag();
+  if(!selectedWorks.includes(name)){
+    selectedWorks.push(name);
+    renderWorkTags();
+  }
 
   const search = document.getElementById('workSearch');
   if(search) search.value = '';
