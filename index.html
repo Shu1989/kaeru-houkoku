@@ -1276,10 +1276,26 @@ function addBreakdownItemToGroup(groupId, itemName){
   const name = (itemName || '').trim();
   if(!name) return;
 
-  const idx = breakdownRows.findIndex(r => r.id === groupId && r.type === 'group');
-  if(idx < 0) return;
+  const groupIdx = breakdownRows.findIndex(r => r.id === groupId && r.type === 'group');
+  if(groupIdx < 0) return;
 
-  breakdownRows.splice(idx + 1, 0, {
+  // 同じグループの最後の項目位置を探す
+  let insertIdx = groupIdx + 1;
+  for(let i = groupIdx + 1; i < breakdownRows.length; i++){
+    const row = breakdownRows[i];
+
+    // 次のグループに当たったら、その直前に入れる
+    if(row.type === 'group'){
+      break;
+    }
+
+    // 同じグループの項目なら、その次へ
+    if(row.type === 'item' && row.groupId === groupId){
+      insertIdx = i + 1;
+    }
+  }
+
+  breakdownRows.splice(insertIdx, 0, {
     id: Date.now() + Math.floor(Math.random() * 1000),
     type: 'item',
     groupId: groupId,
