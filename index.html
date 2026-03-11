@@ -1385,9 +1385,9 @@ function addBreakdownRow(groupId){
   const q = String(keyword || '').trim().toLowerCase();
 
   const items = !q
-  ? lists.bdItems.slice(0, 5)
-  : lists.bdItems.filter(item => item.name.toLowerCase().includes(q));
-    
+    ? lists.bdItems.slice(0, 5)
+    : lists.bdItems.filter(item => item.name.toLowerCase().includes(q));
+
   if(!items.length){
     return `
       <div style="font-size:12px;color:#aaa;padding:8px 4px;">
@@ -1396,32 +1396,37 @@ function addBreakdownRow(groupId){
     `;
   }
 
-    const listLabel = !q ? '最近使った項目' : '候補';
+  const listLabel = !q ? '最近使った項目' : '候補';
 
-  return items.map(item => `
-    <button
-      type="button"
-      onclick="addBreakdownCandidate(${groupId}, '${item.name.replace(/'/g, "\\'")}')"
-      style="
-        width:100%;
-        text-align:left;
-        padding:10px 12px;
-        border:1px solid var(--border);
-        border-radius:8px;
-        background:#fff;
-        font-size:13px;
-        color:var(--text);
-        cursor:pointer;
-      "
-    >
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span>${item.name}</span>
-        <span style="font-family:'DM Mono',monospace;color:#7b1fa2;font-size:12px;flex-shrink:0;">
-          ${item.defaultPrice ? '¥' + Number(item.defaultPrice).toLocaleString() : ''}
-        </span>
-      </div>
-    </button>
-  `).join('');
+  return `
+    <div style="font-size:11px;color:#888;margin-bottom:4px;padding:0 2px;">
+      ${listLabel}
+    </div>
+    ${items.map(item => `
+      <button
+        type="button"
+        onclick="addBreakdownCandidate(${groupId}, '${item.name.replace(/'/g, "\\'")}')"
+        style="
+          width:100%;
+          text-align:left;
+          padding:10px 12px;
+          border:1px solid var(--border);
+          border-radius:8px;
+          background:#fff;
+          font-size:13px;
+          color:var(--text);
+          cursor:pointer;
+        "
+      >
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span>${item.name}</span>
+          <span style="font-family:'DM Mono',monospace;color:#7b1fa2;font-size:12px;flex-shrink:0;">
+            ${item.defaultPrice ? '¥' + Number(item.defaultPrice).toLocaleString() : ''}
+          </span>
+        </div>
+      </button>
+    `).join('')}
+  `;
 }
 
 function renderBreakdownCandidateList(groupId, keyword){
