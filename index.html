@@ -1481,8 +1481,11 @@ function removeBreakdownRow(id){
   if(!target) return;
 
   if(target.type === 'group'){
-    // グループ削除時は配下項目も消す
+    const ok = confirm(`「${target.name || 'このグループ'}」グループと内訳をすべて削除します。\nよろしいですか？`);
+    if(!ok) return;
+
     breakdownRows = breakdownRows.filter(r => r.id !== id && r.groupId !== id);
+
     if(!breakdownRows.some(r => r.type === 'group')){
       ensureDefaultBreakdownGroup();
     }
