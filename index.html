@@ -1384,12 +1384,27 @@ function addWorkCandidate(name){
 
 function addWorkOption(){
   const inp = document.getElementById('workAddInput');
+  if(!inp) return;
+
   const val = inp.value.trim();
-  if(!val){ inp.focus(); return; }
-  if(!lists.works.includes(val)){ lists.works.push(val); saveList('anken_works', lists.works); }
-  buildWorkSelect();
-  if(!selectedWorks.includes(val)){ selectedWorks.push(val); renderWorkTags(); }
+  if(!val){
+    inp.focus();
+    return;
+  }
+
+  if(!lists.works.includes(val)){
+    lists.works.unshift(val);
+    saveList('anken_works', lists.works);
+  }
+
+  if(!selectedWorks.includes(val)){
+    selectedWorks.push(val);
+  }
+
+  inp.value = '';
   closeInlineAdd('workAdd');
+  renderWorkTags();
+  renderWorkCandidateList('');
 }
 
 // ===== オプション追加 =====
