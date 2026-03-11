@@ -1028,7 +1028,20 @@ let memberRatesFromGAS = {}; // name -> rate
 
 const DEFAULT_CLIENTS  = ['アネシス','テスコ','グローバー','東洋世田谷第一','東洋世田谷第二','東洋サポート','東洋ユニオン横浜','東洋ユニオン千葉','東洋ユニオン八潮','東洋ビル横浜','東洋ビル多摩','東洋ビル大宮','東洋住宅横浜','東洋','東洋新横浜','ミックスアップ','ティーテック'];
 const DEFAULT_WORKS    = ['漏水調査','排水詰まり除去作業','トイレ詰まり除去作業','養生作業','グリストラップ詰まり除去作業','給湯管一部改修','水栓交換作業','高圧洗浄作業','フレキ管交換作業','スピンドル交換作業'];
-const DEFAULT_BD_ITEMS  = ['作業費','諸経費','時間外対応費','高圧','トーラー','便器脱着','配管継手類','配管作業費','バキューム','駐車場代','高速代','調整値引'];
+const DEFAULT_BD_ITEMS = [
+  { name:'作業費', defaultPrice:0 },
+  { name:'諸経費', defaultPrice:0 },
+  { name:'時間外対応費', defaultPrice:0 },
+  { name:'高圧', defaultPrice:0 },
+  { name:'トーラー', defaultPrice:0 },
+  { name:'便器脱着', defaultPrice:0 },
+  { name:'配管継手類', defaultPrice:0 },
+  { name:'配管作業費', defaultPrice:0 },
+  { name:'バキューム', defaultPrice:0 },
+  { name:'駐車場代', defaultPrice:0 },
+  { name:'高速代', defaultPrice:0 },
+  { name:'調整値引', defaultPrice:0 }
+];
 const DEFAULT_BD_GROUPS = ['本件料金','一次対応分','二次対応分','追加作業分'];
 
 const LIST_VERSION = '2026-03-09-v6'; // ★ リスト更新時はここを変更
@@ -1051,11 +1064,31 @@ function loadList(key, def){
   }catch(e){ return [...def]; }
 }
 function saveList(key, arr){ try{ localStorage.setItem(key,JSON.stringify(arr)); }catch(e){} }
+  function normalizeBdItems(arr){
+  if(!Array.isArray(arr)) return [];
+  return arr.map(item => {
+    if(typeof item === 'string'){
+      return { name:item, defaultPrice:0 };
+    }
+    return {
+      name: String(item?.name || '').trim(),
+      defaultPrice: Number(item?.defaultPrice) || 0
+    };
+  }).filter(item => item.name);
+}
+
+function getBdItemNames(){
+  return (lists.bdItems || []).map(item => item.name);
+}
+
+function findBdItem(name){
+  return (lists.bdItems || []).find(item => item.name === name);
+}
 
 let lists = {
   clients: loadList('anken_clients', DEFAULT_CLIENTS),
   works:   loadList('anken_works',   DEFAULT_WORKS),
-  bdItems:  loadList('anken_bditems',  DEFAULT_BD_ITEMS),
+  bdItems: normalizeBdItems(loadList('anken_bditems', DEFAULT_BD_ITEMS)),
   bdGroups: loadList('anken_bdgroups', DEFAULT_BD_GROUPS),
 };
 
@@ -1165,7 +1198,7 @@ function onClientChange(){
 function initSelects(){
   buildSelect('fClient', lists.clients, '選択または＋で追加');
   buildWorkSelect();
-  buildSelect('breakdownSelect', lists.bdItems,  '選択または＋で追加');
+  buildSelect('breakdownSelect', getBdItemNames(), '選択または＋で追加');
   buildSelect('groupSelect',     lists.bdGroups, '選択または＋で追加');
 }
 
@@ -1310,28 +1343,27 @@ function addBreakdownItemToGroup(groupId, itemName){
   const groupIdx = breakdownRows.findIndex(r => r.id === groupId && r.type === 'group');
   if(groupIdx < 0) return;
 
-  // 同じグループの最後の項目位置を探す
   let insertIdx = groupIdx + 1;
+
   for(let i = groupIdx + 1; i < breakdownRows.length; i++){
     const row = breakdownRows[i];
 
-    // 次のグループに当たったら、その直前に入れる
-    if(row.type === 'group'){
-      break;
-    }
+    if(row.type === 'group') break;
 
-    // 同じグループの項目なら、その次へ
     if(row.type === 'item' && row.groupId === groupId){
       insertIdx = i + 1;
     }
   }
+
+  const bdItem = findBdItem(name);
+  const defaultPrice = Number(bdItem?.defaultPrice) || 0;
 
   breakdownRows.splice(insertIdx, 0, {
     id: Date.now() + Math.floor(Math.random() * 1000),
     type: 'item',
     groupId: groupId,
     name: name,
-    price: 0,
+    price: defaultPrice,
     qty: 1,
     discount: 0,
     discountOpen: false
@@ -1368,11 +1400,12 @@ function toggleBdItemAdd(groupId){
 function addBreakdownOption(groupId){
   const input = document.getElementById('bdItemAddInput_' + groupId);
   if(!input) return;
+
   const val = input.value.trim();
   if(!val) return;
 
-  if(!lists.bdItems.includes(val)){
-    lists.bdItems.push(val);
+  if(!lists.bdItems.some(item => item.name === val)){
+    lists.bdItems.push({ name: val, defaultPrice: 0 });
     saveList('anken_bditems', lists.bdItems);
   }
 
@@ -1504,7 +1537,7 @@ function renderBreakdown(){
           <div class="select-add-wrap">
             <select id="breakdownSelect_${group.id}">
               <option value="">-- 選択または追加 --</option>
-              ${lists.bdItems.map(v => `<option value="${v}">${v}</option>`).join('')}
+              ${lists.bdItems.map(item => `<option value="${item.name}">${item.name}</option>`).join('')}
             </select>
             <button
               class="btn-add-option"
