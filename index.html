@@ -1029,7 +1029,7 @@ let memberRatesFromGAS = {}; // name -> rate
 const DEFAULT_CLIENTS  = ['アネシス','テスコ','グローバー','東洋世田谷第一','東洋世田谷第二','東洋サポート','東洋ユニオン横浜','東洋ユニオン千葉','東洋ユニオン八潮','東洋ビル横浜','東洋ビル多摩','東洋ビル大宮','東洋住宅横浜','東洋','東洋新横浜','ミックスアップ','ティーテック'];
 const DEFAULT_WORKS    = ['漏水調査','排水詰まり除去作業','トイレ詰まり除去作業','養生作業','グリストラップ詰まり除去作業','給湯管一部改修','水栓交換作業','高圧洗浄作業','フレキ管交換作業','スピンドル交換作業'];
 const DEFAULT_BD_ITEMS = [
-  { name:'作業費', defaultPrice:7000 },
+  { name:'作業費', defaultPrice:0 },
   { name:'諸経費', defaultPrice:0 },
   { name:'時間外対応費', defaultPrice:0 },
   { name:'高圧', defaultPrice:0 },
@@ -2217,7 +2217,7 @@ function renderListEditorSection(containerId, listKey, storageKey){
       <input
         type="text"
         value="${item.name}"
-        oninput="lists.bdItems[${i}].name=this.value"
+        onchange="lists.bdItems[${i}].name=this.value; saveList('anken_bditems', lists.bdItems); initSelects();"
         style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;"
         placeholder="項目名"
       >
@@ -2225,7 +2225,7 @@ function renderListEditorSection(containerId, listKey, storageKey){
         type="number"
         value="${item.defaultPrice || ''}"
         min="0"
-        oninput="lists.bdItems[${i}].defaultPrice=Number(this.value)||0"
+        onchange="lists.bdItems[${i}].defaultPrice=Number(this.value)||0; saveList('anken_bditems', lists.bdItems);"
         style="width:110px;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;text-align:right;font-family:'DM Mono',monospace;"
         placeholder="単価"
       >
