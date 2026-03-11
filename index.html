@@ -1387,7 +1387,7 @@ function addBreakdownRow(groupId){
   const items = !q
   ? lists.bdItems.slice(0, 5)
   : lists.bdItems.filter(item => item.name.toLowerCase().includes(q));
-
+    
   if(!items.length){
     return `
       <div style="font-size:12px;color:#aaa;padding:8px 4px;">
@@ -1395,6 +1395,8 @@ function addBreakdownRow(groupId){
       </div>
     `;
   }
+
+    const listLabel = !q ? '最近使った項目' : '候補';
 
   return items.map(item => `
     <button
