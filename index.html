@@ -1267,6 +1267,29 @@ function buildSelect(id, arr, ph){
   if(!el) return;
   el.innerHTML = `<option value="">-- ${ph} --</option>` + arr.map(v=>`<option>${v}</option>`).join('');
 }
+
+function setSelectOrAdd(selectId, value, listArr){
+  const sel = document.getElementById(selectId);
+  if(!sel) return;
+
+  const val = String(value || '').trim();
+  if(!val){
+    sel.value = '';
+    return;
+  }
+
+  const exists = (listArr || []).includes(val);
+
+  if(!exists){
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = val;
+    sel.appendChild(opt);
+  }
+
+  sel.value = val;
+}
+  
 const REPORT_CLIENTS = ['東洋世田谷第一','東洋世田谷第二','東洋サポート'];
 
 function copyHoukokushoTemplate(){
