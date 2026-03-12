@@ -2019,6 +2019,36 @@ async function submitForm(){
   // 複数メンバー分配を取得
   const dist = getMultiDistribution();
   let breakdown = '';
+  if (document.getElementById('multiMemberCheck')?.checked) {
+  const selfRow = multiRows.find(r => r.member === currentUser);
+
+  if (!selfRow || !selfRow.amount || selfRow.amount <= 0) {
+    showStatus('statusMsg','error','⚠️ 入力者本人の計上額を入力してください');
+    btn.disabled = false;
+    btn.innerHTML = '送信';
+    return;
+  }
+
+  const emptyOther = multiRows.find(r =>
+    r.member !== currentUser && (!r.amount || r.amount <= 0)
+  );
+
+  if (emptyOther) {
+    showStatus('statusMsg','error','⚠️ 分配メンバーの計上額が未入力です');
+    btn.disabled = false;
+    btn.innerHTML = '送信';
+    return;
+  }
+
+  const distTotal = multiRows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+
+  if (distTotal !== subtotal) {
+    showStatus('statusMsg','error','⚠️ 分配合計と案件小計が一致していません');
+    btn.disabled = false;
+    btn.innerHTML = '送信';
+    return;
+  }
+}
 
   // 分配がある場合、入力者のメモに「【分配済】○○へ」を付与
   if(dist){
