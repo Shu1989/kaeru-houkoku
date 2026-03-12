@@ -301,14 +301,14 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <div class="tesuco-docs" id="tesucoDocsArea" style="display:none;">
           <div class="doc-title">📄 書類作成チェック</div>
           <div class="doc-check-row">
-            <div class="doc-check-item">
-              <input type="checkbox" id="chkMitsumori">
-              <label for="chkMitsumori">見積書が必要</label>
-            </div>
-            <div class="doc-check-item">
-              <input type="checkbox" id="chkNohinshi">
-              <label for="chkNohinshi">納品書が必要</label>
-            </div>
+            <div class="doc-check-item" id="chkMitsumoriRow">
+  <input type="checkbox" id="chkMitsumori">
+  <label for="chkMitsumori">見積書が必要</label>
+</div>
+<div class="doc-check-item" id="chkNohinshiRow">
+  <input type="checkbox" id="chkNohinshi">
+  <label for="chkNohinshi">納品書が必要</label>
+</div>
           </div>
           <div style="font-size:12px;color:#888;margin-top:8px;line-height:1.6;">※備考に記載内容が必要な場合は、メモ欄に記載お願いします。</div>
         </div>
@@ -1141,7 +1141,7 @@ let ALL_MEMBERS = [];
 let MEMBER_CODES_MAP = {}; // code -> name
 let memberRatesFromGAS = {}; // name -> rate
 
-const DEFAULT_CLIENTS  = ['アネシス','テスコ','グローバー','東洋世田谷第一','東洋世田谷第二','東洋サポート','東洋ユニオン横浜','東洋ユニオン千葉','東洋ユニオン八潮','東洋ビル横浜','東洋ビル多摩','東洋ビル大宮','東洋住宅横浜','東洋','東洋新横浜','ミックスアップ','ティーテック'];
+const DEFAULT_CLIENTS  = ['アネシス','テスコ','グローバー','東洋世田谷第一','東洋世田谷第二','東洋サポート','東洋ユニオン横浜','東洋ユニオン千葉','東洋ユニオン八潮','東洋ビル横浜','東洋ビル多摩','東洋ビル大宮','東洋住宅横浜','東洋','東洋新横浜','ミックスアップ','ティーテック','長栄'];
 const DEFAULT_WORKS    = ['漏水調査','排水詰まり除去作業','トイレ詰まり除去作業','養生作業','グリストラップ詰まり除去作業','給湯管一部改修','水栓交換作業','高圧洗浄作業','フレキ管交換作業','スピンドル交換作業'];
 const DEFAULT_BD_ITEMS = [
   { name:'作業費', defaultPrice:0 },
@@ -1159,7 +1159,7 @@ const DEFAULT_BD_ITEMS = [
 ];
 const DEFAULT_BD_GROUPS = ['本件料金','一次対応分','二次対応分','追加作業分'];
 
-const LIST_VERSION = '2026-03-09-v8'; // ★ リスト更新時はここを変更
+const LIST_VERSION = '2026-03-09-v9'; // ★ リスト更新時はここを変更
 
 function loadList(key, def){
   try{
@@ -1346,13 +1346,26 @@ function toggleHoukokushoMsg(checked){
 
 function onClientChange(){
   const val = document.getElementById('fClient').value;
-  // テスコ：見積書・納品書
+
+  // テスコ・長栄：書類チェック
   const tesucoArea = document.getElementById('tesucoDocsArea');
-  if(tesucoArea) tesucoArea.style.display = val === 'テスコ' ? 'block' : 'none';
-  if(val !== 'テスコ'){
+  if(tesucoArea) tesucoArea.style.display = ['テスコ', '長栄'].includes(val) ? 'block' : 'none';
+
+  // 見積書
+  const mitsuRow = document.getElementById('chkMitsumoriRow');
+  if(mitsuRow) mitsuRow.style.display = ['テスコ', '長栄'].includes(val) ? 'flex' : 'none';
+
+  // 納品書
+  const nohinRow = document.getElementById('chkNohinshiRow');
+  if(nohinRow) nohinRow.style.display = val === 'テスコ' ? 'flex' : 'none';
+
+  if(!['テスコ', '長栄'].includes(val)){
     document.getElementById('chkMitsumori').checked = false;
+  }
+  if(val !== 'テスコ'){
     document.getElementById('chkNohinshi').checked = false;
   }
+
   // 東洋系3社：報告書
   const reportArea = document.getElementById('reportDocsArea');
   if(reportArea) reportArea.style.display = REPORT_CLIENTS.includes(val) ? 'block' : 'none';
