@@ -791,7 +791,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbz8xxNKzb_F-rGgsDFZIOdr
 let memberRates = {}; // GASから取得
 
 // ===== 複数メンバー分配 =====
-let multiRows = []; // {id, member, amount}
+let multiRows = []; // {id, member, amount, material}
 let eMultiRows = [];
 
 function toggleMultiMember(){
@@ -800,7 +800,14 @@ function toggleMultiMember(){
   if(on){
     multiRows = [];
     // 自分を最初に追加
-    if(currentUser && currentUser!=='admin') multiRows.push({id:Date.now(), member:currentUser, amount:0});
+    if(currentUser && currentUser!=='admin') {
+  multiRows.push({
+    id: Date.now(),
+    member: currentUser,
+    amount: 0,
+    material: 0
+  });
+}
     refreshMultiSelect();
     renderMultiRows();
   }
@@ -818,7 +825,14 @@ function addMultiMemberRow(){
   const sel = document.getElementById('multiMemberSelect');
   const m = sel.value;
   if(!m) return;
-  multiRows.push({id:Date.now(), member:m, amount:0});
+
+  multiRows.push({
+    id: Date.now(),
+    member: m,
+    amount: 0,
+    material: 0
+  });
+
   refreshMultiSelect();
   renderMultiRows();
 }
@@ -832,16 +846,71 @@ function removeMultiRow(id){
 function renderMultiRows(){
   const list = document.getElementById('multiMemberList');
   const totalArea = document.getElementById('multiMemberTotalArea');
-  list.innerHTML = multiRows.map((r,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span style="width:80px;font-size:14px;font-weight:700;flex-shrink:0;">${r.member==='admin'?'かえる':r.member}</span>
-      <span style="font-size:13px;color:#888;">¥</span>
-      <input type="number" placeholder="0" min="0" value="${r.amount||''}"
-        oninput="multiRows[${i}].amount=Number(this.value)||0;updateMultiTotal()"
-        style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;">
-      <button onclick="removeMultiRow(${r.id})" style="padding:7px 10px;background:#ffebee;border:none;border-radius:6px;color:#c62828;font-size:15px;cursor:pointer;">×</button>
-    </div>`).join('');
-  if(totalArea) totalArea.style.display = multiRows.length>1 ? 'block' : 'none';
+
+  list.innerHTML = multiRows.map((r,i)=>{
+    const isSelf = r.member === currentUser;
+    const memberLabel = r.member === 'admin' ? 'かえる' : r.member;
+
+    if(isSelf){
+      return `
+        <div style="padding:10px;border:1.5px solid #e5e5e5;border-radius:10px;background:#fff;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:14px;font-weight:700;">${memberLabel} <span style="font-size:11px;color:#888;">（入力者）</span></span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:60px;font-size:13px;color:#666;flex-shrink:0;">計上額</span>
+            <span style="font-size:13px;color:#888;">¥</span>
+            <input
+              type="number"
+              placeholder="0"
+              min="0"
+              value="${r.amount || ''}"
+              oninput="multiRows[${i}].amount=Number(this.value)||0;updateMultiTotal()"
+              style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
+            >
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div style="padding:10px;border:1.5px solid #e5e5e5;border-radius:10px;background:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:14px;font-weight:700;">${memberLabel}</span>
+          <button onclick="removeMultiRow(${r.id})" style="padding:7px 10px;background:#ffebee;border:none;border-radius:6px;color:#c62828;font-size:15px;cursor:pointer;">×</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="width:60px;font-size:13px;color:#666;flex-shrink:0;">計上額</span>
+          <span style="font-size:13px;color:#888;">¥</span>
+          <input
+            type="number"
+            placeholder="0"
+            min="0"
+            value="${r.amount || ''}"
+            oninput="multiRows[${i}].amount=Number(this.value)||0;updateMultiTotal()"
+            style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
+          >
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:60px;font-size:13px;color:#666;flex-shrink:0;">部材</span>
+          <span style="font-size:13px;color:#888;">¥</span>
+          <input
+            type="number"
+            placeholder="0"
+            min="0"
+            value="${r.material || ''}"
+            oninput="multiRows[${i}].material=Number(this.value)||0"
+            style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
+          >
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if(totalArea) totalArea.style.display = multiRows.length > 1 ? 'block' : 'none';
   updateMultiTotal();
 }
 
