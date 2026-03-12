@@ -369,7 +369,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
   <div id="workCandidateList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
 
   <div
-  onclick="toggleInlineAdd('workAdd')"
+  onclick="openWorkAddWithSearch()"
   style="
     width:100%;
     text-align:center;
@@ -1544,6 +1544,17 @@ function addWorkCandidate(name){
   if(search) search.value = '';
 
   renderWorkCandidateList('');
+}
+
+  function openWorkAddWithSearch(){
+  const add = document.getElementById('workAdd');
+  const search = document.getElementById('workSearch');
+  const input = document.getElementById('workAddInput');
+  if(!add || !input) return;
+
+  add.classList.add('open');
+  input.value = (search?.value || '').trim();
+  input.focus();
 }
 
 function addWorkOption(){
