@@ -458,8 +458,6 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     ＋ 調整値引を追加
   </button>
 
-  <!-- 区切り線 -->
-  <div style="margin-top:14px;border-top:1px solid var(--border);"></div>
 
   <!-- 小計 -->
   <div class="subtotal-row" style="margin-top:10px;">
@@ -470,7 +468,8 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 
     <div class="card">
       <div class="card-title"><span></span>部材</div>
-      <div style="font-size:12px;color:#888;margin-bottom:10px;">※負担した部材の料金を記入してください。<br>※かえる部材は、分配欄からかえるを選択し計上してください。</div>
+      <div style="font-size:12px;color:#888;margin-bottom:10px;">
+        ※自分が負担した部材代を入力してください。<br>他メンバーの部材代は分配欄で計上してください。</div>
       <div id="buZaiList" style="display:flex;flex-direction:column;gap:8px;"></div>
       <button class="btn-add-breakdown-row" onclick="addBuZaiRow()" style="margin-top:10px;">＋ 部材を追加</button>
       <div class="subtotal-row" id="buZaiTotalRow" style="display:none;">
