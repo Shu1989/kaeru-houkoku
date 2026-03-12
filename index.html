@@ -1761,6 +1761,17 @@ function toggleBdItemAdd(groupId){
   }
 }
 
+  function openBdItemAddWithSearch(groupId){
+  const el = document.getElementById('bdItemAdd_' + groupId);
+  const search = document.getElementById('breakdownSearch_' + groupId);
+  const input = document.getElementById('bdItemAddInput_' + groupId);
+  if(!el || !input) return;
+
+  el.style.display = 'flex';
+  input.value = (search?.value || '').trim();
+  input.focus();
+}
+
 // グループ内で新規項目を保存して追加
 function addBreakdownOption(groupId){
   const input = document.getElementById('bdItemAddInput_' + groupId);
@@ -1921,7 +1932,7 @@ function renderBreakdown(){
 
           <button
             class="btn-add-breakdown-row"
-            onclick="toggleBdItemAdd(${group.id})"
+            onclick="openBdItemAddWithSearch(${group.id})"
             style="margin-top:8px;font-size:12px;"
           >
             ＋ 新規項目名を追加
