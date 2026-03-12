@@ -796,6 +796,7 @@ let eMultiRows = [];
 
   // ===== 履歴一時保持 =====
 let currentHistoryRecords = [];
+let receivedPopupShown = false;
 
 function toggleMultiMember(){
   const on = document.getElementById('multiMemberCheck').checked;
@@ -1233,6 +1234,34 @@ async function fetchMembers(){
   return false;
 }
 
+  async function checkReceivedDistributionPopup(){
+  if(!currentUser || currentUser === 'admin' || receivedPopupShown) return;
+
+  try{
+    const res = await fetch(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser));
+    const json = await res.json();
+    const records = (json.records || []);
+
+    const received = records.filter(r => /【分配】([^\n\r]+?)より/.test(String(r.memo || '')));
+    if(!received.length) return;
+
+    const names = [...new Set(
+      received.map(r => {
+        const m = String(r.memo || '').match(/【分配】([^\n\r]+?)より/);
+        if(!m) return null;
+        return m[1] === 'admin' ? 'かえる' : m[1];
+      }).filter(Boolean)
+    )];
+
+    if(names.length){
+      receivedPopupShown = true;
+      alert(names.join('・') + ' さんから案件が分配されました\n履歴タブで確認できます');
+    }
+  }catch(e){
+    console.warn('分配通知チェック失敗:', e);
+  }
+}
+
 async function checkUrlLogin(){
   // GASからメンバーマスタ取得
   await fetchMembers();
@@ -1258,7 +1287,7 @@ async function checkUrlLogin(){
   if(adminArea) adminArea.style.display = member==='admin' ? '' : 'none';
   document.getElementById('dashTabBtn').style.display    = 'inline-block'; // 全員表示
   setTimeout(initPlaceAutocomplete, 300);
-  initSelects(); renderBreakdown(); renderWorkCandidateList('');
+  initSelects(); renderBreakdown(); renderWorkCandidateList(''); checkReceivedDistributionPopup();
 }
 
 // ===== セレクト =====
