@@ -2184,11 +2184,11 @@ async function submitForm(){
 
   // 入力者本人の分配額・部材を反映
   if(dist[currentUser] !== undefined){
-    record.distSubtotal = dist[currentUser].amount;
-    record.subtotal = dist[currentUser].amount;
-    record.buZaiTotal = calcBuZaiTotal(); // 上の部材欄は入力者本人用
-    record.buZai = buZaiRows.map(r => r.price);
-  }
+  record.distSubtotal = dist[currentUser].amount;
+  // subtotal は案件小計のまま保持する
+  record.buZaiTotal = calcBuZaiTotal(); // 上の部材欄は入力者本人用
+  record.buZai = buZaiRows.map(r => r.price);
+}
 
   // 分配内訳を memo に埋め込む
   breakdown = Object.entries(dist)
@@ -2212,15 +2212,16 @@ async function submitForm(){
     if(mem === currentUser) continue;
 
     const subRecord = {
-      ...record,
-      action:'add',
-      id: record.id,
-      member: mem,
-      subtotal: val.amount,
-      memo: (status==='継続中' ? '【継続中】' : '') + '【分配】' + currentUser + 'より' + (memo ? ' ' + memo : '') + '|内訳:' + breakdown,
-      buZaiTotal: Number(val.material || 0),
-      buZai: Number(val.material || 0) > 0 ? [Number(val.material || 0)] : []
-    };
+  ...record,
+  action:'add',
+  id: record.id,
+  member: mem,
+  subtotal: record.subtotal,              // 案件小計を保持
+  distSubtotal: Number(val.amount || 0),  // この人の取り分
+  memo: (status==='継続中' ? '【継続中】' : '') + '【分配】' + currentUser + 'より' + (memo ? ' ' + memo : '') + '|内訳:' + breakdown,
+  buZaiTotal: Number(val.material || 0),
+  buZai: Number(val.material || 0) > 0 ? [Number(val.material || 0)] : []
+};
 
     delete subRecord.distSubtotal;
 
@@ -3252,13 +3253,20 @@ async function saveEdit(){
         for(const [mem, amt] of Object.entries(eDist)){
           if(mem===currentUser) continue;
           const subRec = {
-            action:'add',
-            id: Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)+'_'+mem,
-            member:mem,
-            date:updated.date, client:updated.client, place:updated.place, work:updated.work,
-            memo:`【分配】${currentUser}より`,
-            breakdown:updated.breakdown, subtotal:amt, buZai:[], buZaiTotal:0
-          };
+  action:'add',
+  id: Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)+'_'+mem,
+  member:mem,
+  date:updated.date,
+  client:updated.client,
+  place:updated.place,
+  work:updated.work,
+  memo:`【分配】${currentUser}より`,
+  breakdown:updated.breakdown,
+  subtotal: updated.subtotal,   // 案件小計
+  distSubtotal: amt,            // 分配額
+  buZai:[],
+  buZaiTotal:0
+};
           const enc2=encodeURIComponent(JSON.stringify(subRec));
           await fetch(GAS_URL+'?data='+enc2);
         }
