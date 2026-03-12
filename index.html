@@ -795,7 +795,6 @@ let eMultiRows = [];
 
   // ===== 履歴一時保持 =====
 let currentHistoryRecords = [];
-let receivedPopupShown = false;
 
 function toggleMultiMember(){
   const on = document.getElementById('multiMemberCheck').checked;
@@ -1234,7 +1233,7 @@ async function fetchMembers(){
 }
 
   async function checkReceivedDistributionPopup(){
-  if(!currentUser || currentUser === 'admin' || receivedPopupShown) return;
+  if(!currentUser || currentUser === 'admin') return;
 
   try{
     const res = await fetch(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser));
@@ -1244,18 +1243,22 @@ async function fetchMembers(){
     const received = records.filter(r => /【分配】([^\n\r]+?)より/.test(String(r.memo || '')));
     if(!received.length) return;
 
-    const names = [...new Set(
-      received.map(r => {
-        const m = String(r.memo || '').match(/【分配】([^\n\r]+?)より/);
-        if(!m) return null;
-        return m[1] === 'admin' ? 'かえる' : m[1];
-      }).filter(Boolean)
-    )];
+    // まだこの端末で通知していない案件だけ抽出
+    const unseen = received.filter(r => {
+      const key = 'dist_popup_seen_' + currentUser + '_' + String(r.id || '');
+      return localStorage.getItem(key) !== '1';
+    });
 
-    if(names.length){
-      receivedPopupShown = true;
-      alert(names.join('・') + ' さんから案件が分配されました\n履歴タブで確認できます');
-    }
+    if(!unseen.length) return;
+
+    alert(unseen.length + '件の分配案件があります\n履歴タブで確認できます');
+
+    // 今回通知した案件を表示済みにする
+    unseen.forEach(r => {
+      const key = 'dist_popup_seen_' + currentUser + '_' + String(r.id || '');
+      localStorage.setItem(key, '1');
+    });
+
   }catch(e){
     console.warn('分配通知チェック失敗:', e);
   }
