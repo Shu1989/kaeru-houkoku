@@ -928,9 +928,18 @@ function updateMultiTotal(){
 
 function getMultiDistribution(){
   if(!document.getElementById('multiMemberCheck')?.checked) return null;
+
   const dist = {};
-  multiRows.forEach(r=>{ if(r.amount>0) dist[r.member]=r.amount; });
-  return Object.keys(dist).length>0 ? dist : null;
+  multiRows.forEach(r=>{
+    if((r.amount || 0) > 0 || (r.material || 0) > 0){
+      dist[r.member] = {
+        amount: Number(r.amount || 0),
+        material: Number(r.material || 0)
+      };
+    }
+  });
+
+  return Object.keys(dist).length > 0 ? dist : null;
 }
 
 // ===== 編集モーダル 複数メンバー =====
@@ -2013,19 +2022,28 @@ async function submitForm(){
 
   // 分配がある場合、入力者のメモに「【分配済】○○へ」を付与
   if(dist){
-    const others = Object.keys(dist).filter(m=>m!==currentUser);
-    if(others.length>0){
-      const suffix = '【分配済】'+others.join('・')+'へ';
-      record.memo = record.memo ? record.memo + ' ' + suffix : suffix;
-    }
-    // ★ 入力者自身の分配額がある場合、distSubtotalとして渡す
-    if(dist[currentUser] !== undefined){
-      record.distSubtotal = dist[currentUser];
-    }
-    // ★ 分配内訳をmemoに埋め込む（例: |内訳:石渡:66000,大森:30000）
-    breakdown = Object.entries(dist).map(([m,a])=>m+':'+a).join(',');
-    record.memo = (record.memo||'') + '|内訳:'+breakdown;
+  const others = Object.keys(dist).filter(m => m !== currentUser);
+
+  if(others.length > 0){
+    const suffix = '【分配済】' + others.join('・') + 'へ';
+    record.memo = record.memo ? record.memo + ' ' + suffix : suffix;
   }
+
+  // 入力者本人の分配額・部材を反映
+  if(dist[currentUser] !== undefined){
+    record.distSubtotal = dist[currentUser].amount;
+    record.subtotal = dist[currentUser].amount;
+    record.buZaiTotal = calcBuZaiTotal(); // 上の部材欄は入力者本人用
+    record.buZai = buZaiRows.map(r => r.price);
+  }
+
+  // 分配内訳を memo に埋め込む
+  breakdown = Object.entries(dist)
+    .map(([m,v]) => `${m}:${v.amount}:${v.material}`)
+    .join(',');
+
+  record.memo = (record.memo || '') + '|内訳:' + breakdown;
+}
 
   try{
     // メインレコード送信
@@ -2035,32 +2053,35 @@ async function submitForm(){
     if(json.result==='success'){
       // 複数メンバー分配がある場合、各メンバーにも記録
       if(dist){
-        const entries = Object.entries(dist);
-        for(const [mem, amt] of entries){
-          if(mem === currentUser) continue; // 自分は既に記録済み
-          const subRecord = {
-            ...record,
-            action:'add',
-            id: record.id, // ★ 送信側と同じIDを使用（削除・編集連携のため）
-            member: mem,
-            subtotal: amt,
-            memo: (status==='継続中'?'【継続中】':'')+'【分配】'+currentUser+'より' + (memo ? ' '+memo : '') + '|内訳:'+breakdown,
-            // 部材は分配元のみが持つ（他メンバーは0）
-            buZaiTotal: 0,
-            buZai: []
-          };
-          delete subRecord.distSubtotal;  // ★ 石渡のdistSubtotalを確実に除去
-          const enc2 = encodeURIComponent(JSON.stringify(subRecord));
-          await fetch(GAS_URL+'?data='+enc2);
-        }
-        // リーダーの小計は元の全体金額を保持（上書きしない）
-        const names = Object.keys(dist).map(m=>m==='admin'?'かえる':m).join('・');
-        showStatus('statusMsg','success',`✅ 送信完了！${names} に分配記録しました`);
-        showSuccessPopup(names+' に分配記録しました');
-      } else {
-        showStatus('statusMsg','success','✅ 送信完了！');
-        showSuccessPopup('');
-      }
+  const entries = Object.entries(dist);
+
+  for(const [mem, val] of entries){
+    if(mem === currentUser) continue;
+
+    const subRecord = {
+      ...record,
+      action:'add',
+      id: record.id,
+      member: mem,
+      subtotal: val.amount,
+      memo: (status==='継続中' ? '【継続中】' : '') + '【分配】' + currentUser + 'より' + (memo ? ' ' + memo : '') + '|内訳:' + breakdown,
+      buZaiTotal: Number(val.material || 0),
+      buZai: Number(val.material || 0) > 0 ? [Number(val.material || 0)] : []
+    };
+
+    delete subRecord.distSubtotal;
+
+    const enc2 = encodeURIComponent(JSON.stringify(subRecord));
+    await fetch(GAS_URL + '?data=' + enc2);
+  }
+
+  const names = Object.keys(dist).map(m=>m==='admin'?'かえる':m).join('・');
+  showStatus('statusMsg','success',`✅ 送信完了！${names} に分配記録しました`);
+  showSuccessPopup(names+' に分配記録しました');
+} else {
+  showStatus('statusMsg','success','✅ 送信完了！');
+  showSuccessPopup('');
+}
       // 使った項目をリスト先頭に移動
       const usedBdNames = breakdownRows.filter(r=>r.type!=='group').map(r=>r.name).filter(Boolean);
       bumpUsedItems(client, work, usedBdNames);
