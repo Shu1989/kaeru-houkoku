@@ -2891,8 +2891,7 @@ function openClientModal(clientName){
 
 // ===== 編集モーダル =====
 function openEditModal(r){
-  try {
-    editingRecord = r;
+  editingRecord = r;
     
   // 日付をYYYY-MM-DD形式に正規化
   const rawDate = r.date||'';
