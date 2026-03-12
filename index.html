@@ -2244,11 +2244,13 @@ async function loadHistory(){
       records=(json.records||[]).map(r=>({...r,member:currentUser}));
     }
 
-    records.sort((a,b)=>{
-  const ad = String(a.date || '');
-  const bd = String(b.date || '');
-  if(ad !== bd) return bd.localeCompare(ad); // 新しい日付が上
-  return String(b.id || '').localeCompare(String(a.id || '')); // 同日は新しいID順
+    records.sort((a, b) => {
+  const ta = new Date(a.date || 0).getTime() || 0;
+  const tb = new Date(b.date || 0).getTime() || 0;
+
+  if (ta !== tb) return tb - ta;
+
+  return String(b.id || '').localeCompare(String(a.id || ''));
 });
 
     if(isAdmin){
@@ -2343,11 +2345,13 @@ function renderHistoryList(records, isAdmin){
   const list=document.getElementById('historyList');
   const noteHtml='';
 
-  records = [...records].sort((a,b)=>{
-  const ad = String(a.date || '');
-  const bd = String(b.date || '');
-  if(ad !== bd) return bd.localeCompare(ad);
-  return String(b.id || '').localeCompare(String(a.id || ''));
+  records = [...records].sort((a, b) => {
+  const ta = new Date(a.date || 0).getTime() || 0;
+  const tb = new Date(b.date || 0).getTime() || 0;
+
+  if (ta !== tb) return tb - ta; // 新しい日付が上
+
+  return String(b.id || '').localeCompare(String(a.id || '')); // 同日は新しいID順
 });
 
   if(!records.length){
