@@ -2303,6 +2303,7 @@ function resetForm(){
   document.getElementById('fJobId').value = '';
   const fClient = document.getElementById('fClient');
   if(fClient) fClient.selectedIndex = 0;
+  onClientChange();
   const fWork = document.getElementById('fWork');
   if(fWork) fWork.selectedIndex = 0;
   // 場所をクリア
@@ -2328,6 +2329,20 @@ function resetForm(){
   ['chkMitsumori','chkNohinshi','chkHoukokusho'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.checked=false;
   });
+  const tesucoArea = document.getElementById('tesucoDocsArea');
+if(tesucoArea) tesucoArea.style.display = 'none';
+
+const reportArea = document.getElementById('reportDocsArea');
+if(reportArea) reportArea.style.display = 'none';
+
+const houkokushoMsg = document.getElementById('houkokushoMsg');
+if(houkokushoMsg) houkokushoMsg.style.display = 'none';
+
+const mitsuRow = document.getElementById('chkMitsumoriRow');
+if(mitsuRow) mitsuRow.style.display = 'flex';
+
+const nohinRow = document.getElementById('chkNohinshiRow');
+if(nohinRow) nohinRow.style.display = 'flex';
   // 書類生成エリアを非表示
   const docArea=document.getElementById('docGenArea');
   if(docArea) docArea.style.display='none';
