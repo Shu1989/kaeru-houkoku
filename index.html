@@ -2885,14 +2885,15 @@ function openClientModal(clientName){
 
   function openEditModalByIndex(idx){
   const r = currentHistoryRecords[idx];
-  alert('idx=' + idx + ' / work=' + (r?.work || 'なし'));
   if(!r) return;
   openEditModal(r);
 }
 
 // ===== 編集モーダル =====
 function openEditModal(r){
-  editingRecord=r;
+  try {
+    editingRecord = r;
+    
   // 日付をYYYY-MM-DD形式に正規化
   const rawDate = r.date||'';
   let fmtDate = '';
