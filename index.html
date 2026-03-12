@@ -2227,8 +2227,8 @@ async function submitForm(){
   action:'add',
   id: record.id,
   member: mem,
-  subtotal: record.subtotal,              // 案件小計を保持
-  distSubtotal: Number(val.amount || 0),  // この人の取り分
+  subtotal: record.subtotal,              // 案件小計は保持
+  distSubtotal: Number(val.amount || 0),  // ← これが超重要
   memo: (status==='継続中' ? '【継続中】' : '') + '【分配】' + currentUser + 'より' + (memo ? ' ' + memo : '') + '|内訳:' + breakdown,
   buZaiTotal: Number(val.material || 0),
   buZai: Number(val.material || 0) > 0 ? [Number(val.material || 0)] : []
@@ -3273,8 +3273,8 @@ async function saveEdit(){
   work:updated.work,
   memo:`【分配】${currentUser}より`,
   breakdown:updated.breakdown,
-  subtotal: updated.subtotal,   // 案件小計
-  distSubtotal: amt,            // 分配額
+  subtotal: updated.subtotal,  // 案件小計
+  distSubtotal: amt,           // ← 受取側の分配額
   buZai:[],
   buZaiTotal:0
 };
