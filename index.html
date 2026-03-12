@@ -1592,6 +1592,10 @@ function addWorkOption(){
   }
 
   inp.value = '';
+
+  const search = document.getElementById('workSearch');
+  if(search) search.value = '';
+
   closeInlineAdd('workAdd');
   renderWorkTags();
   renderWorkCandidateList('');
@@ -1801,6 +1805,13 @@ function addBreakdownOption(groupId){
   }
 
   addBreakdownItemToGroup(groupId, val);
+
+  input.value = '';
+
+  const search = document.getElementById('breakdownSearch_' + groupId);
+  if(search) search.value = '';
+
+  renderBreakdownCandidateList(groupId, '');
 }
 
 // 削除
