@@ -1341,6 +1341,37 @@ function initSelects(){
 }
 
 let selectedWorks = [];
+let eSelectedWorks = [];
+
+  function addEWorkTag(){
+  const sel = document.getElementById('eWork');
+  const val = sel.value;
+  if(!val) return;
+
+  if(!eSelectedWorks.includes(val)){
+    eSelectedWorks.push(val);
+  }
+
+  renderEWorkTags();
+  sel.value = '';
+}
+
+function removeEWorkTag(val){
+  eSelectedWorks = eSelectedWorks.filter(w => w !== val);
+  renderEWorkTags();
+}
+
+function renderEWorkTags(){
+  const box = document.getElementById('eWorkTagsSelected');
+  if(!box) return;
+
+  box.innerHTML = eSelectedWorks.map(w => `
+    <div class="work-tag">
+      ${w}
+      <button type="button" onclick="removeEWorkTag('${w.replace(/'/g, "\\'")}')">×</button>
+    </div>
+  `).join('');
+}
 
 // ===== 部材 =====
 let buZaiRows = [];
