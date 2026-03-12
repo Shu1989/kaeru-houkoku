@@ -2891,72 +2891,119 @@ function openClientModal(clientName){
 
 // ===== 編集モーダル =====
 function openEditModal(r){
-  editingRecord = r;
-    
-  // 日付をYYYY-MM-DD形式に正規化
-  const rawDate = r.date||'';
-  let fmtDate = '';
-  if(rawDate){
-    const d = new Date(rawDate);
-    if(!isNaN(d.getTime())){
-      fmtDate = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    } else {
-      // すでに文字列の場合そのまま
-      fmtDate = String(rawDate).slice(0,10).replace(/\//g,'-');
+  try {
+    console.log('openEditModal start', r);
+
+    editingRecord = r;
+
+    // 日付をYYYY-MM-DD形式に正規化
+    const rawDate = r.date || '';
+    let editDate = '';
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        editDate =
+          d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0');
+      } else {
+        editDate = String(rawDate).slice(0, 10).replace(/\//g, '-');
+      }
     }
-  }
-  document.getElementById('eDate').value=fmtDate;
-  // selectを初期化してから値をセット
-  buildSelect('eClient', lists.clients, '顧客名を選択');
-  buildSelect('eWork',   lists.works,   '作業内容を選択');
-  buildSelect('eBreakdownSelect', getBdItemNames(), '内訳項目を選択');
-  buildSelect('eGroupSelect',     lists.bdGroups, 'グループ見出しを選択');
-  // 既存値を選択状態に
-  setSelectOrAdd('eClient', r.client||'', lists.clients);
-  document.getElementById('ePlace').value=r.place||'';
-  // 作業内容タグを初期化（カンマ区切り対応）
-  buildSelect('eWork', lists.works, '-- 選択して追加 --');
-  eSelectedWorks = (r.work||'').split(/[、,，]/).map(w=>w.trim()).filter(Boolean);
-  renderEWorkTags();
-  document.getElementById('eJobId').value = r.jobId||'';
-  // ステータスをメモから判定してラジオに反映
-  const memoVal = r.memo || '';
-  const isOngoing = memoVal.startsWith('【継続中】');
-  document.getElementById('eStatusDone').checked = !isOngoing;
-  document.getElementById('eStatusOngoing').checked = isOngoing;
-  // 追加日付をメモから復元
-  eSubDates = extractSubDatesFromMemo(memoVal);
-  renderSubDates('eSubDateList','eSubDates');
-  const {clean: memoNoDistE} = extractDistBadge(memoVal);
-  const cleanMemo = stripSubDateFromMemo(isOngoing ? memoNoDistE.replace('【継続中】','').trim() : memoNoDistE);
-  document.getElementById('eMemo').value = cleanMemo;
-  editBreakdownRows=parseBdText(r.bdText||'').map((b,i)=>({...b, qty:b.qty||1, discount:b.discount||0, id:i}));
-  renderEditBreakdown();
-  // 部材初期化
-  editBuZaiRows = String(r.buZaiText||'').split(' / ').filter(Boolean).map((v,i)=>({id:i,name:'',price:Number(v)||0}));
-  renderEditBuZai();
-  // 複数メンバーリセット
-  document.getElementById('eMultiMemberCheck').checked = false;
-  document.getElementById('eMultiMemberArea').style.display = 'none';
-  eMultiRows = [];
-  const eAdj = document.getElementById('eAdjustDiscount');
-  if(eAdj){
-    eAdj.value = r.adjustDiscount||'';
-    if(r.adjustDiscount){
-      document.getElementById('eAdjustDiscountArea').style.display='flex';
-      document.getElementById('eAdjustDiscountBtn').style.display='none';
-    } else {
-      document.getElementById('eAdjustDiscountArea').style.display='none';
-      document.getElementById('eAdjustDiscountBtn').style.display='block';
+
+    document.getElementById('eDate').value = editDate;
+
+    // selectを初期化
+    buildSelect('eClient', lists.clients, '顧客名を選択');
+    buildSelect('eWork', lists.works, '-- 選択して追加 --');
+    buildSelect('eBreakdownSelect', getBdItemNames(), '内訳項目を選択');
+    buildSelect('eGroupSelect', lists.bdGroups, 'グループ見出しを選択');
+
+    // 既存値をセット
+    setSelectOrAdd('eClient', r.client || '', lists.clients);
+    document.getElementById('ePlace').value = r.place || '';
+    document.getElementById('eJobId').value = r.jobId || '';
+
+    // 作業内容タグ
+    eSelectedWorks = (r.work || '')
+      .split(/[・、,，]/)
+      .map(w => w.trim())
+      .filter(Boolean);
+
+    console.log('before renderEWorkTags');
+    renderEWorkTags();
+
+    // ステータス
+    const memoVal = r.memo || '';
+    const isOngoing = memoVal.startsWith('【継続中】');
+    document.getElementById('eStatusDone').checked = !isOngoing;
+    document.getElementById('eStatusOngoing').checked = isOngoing;
+
+    // 追加日付
+    eSubDates = extractSubDatesFromMemo(memoVal);
+    renderSubDates('eSubDateList', 'eSubDates');
+
+    const { clean: memoNoDistE } = extractDistBadge(memoVal);
+    const cleanMemo = stripSubDateFromMemo(
+      isOngoing ? memoNoDistE.replace('【継続中】', '').trim() : memoNoDistE
+    );
+    document.getElementById('eMemo').value = cleanMemo;
+
+    // 内訳
+    editBreakdownRows = parseBdText(r.bdText || '').map((b, i) => ({
+      ...b,
+      qty: b.qty || 1,
+      discount: b.discount || 0,
+      id: i
+    }));
+
+    console.log('before renderEditBreakdown');
+    renderEditBreakdown();
+
+    // 部材
+    editBuZaiRows = String(r.buZaiText || '')
+      .split(' / ')
+      .filter(Boolean)
+      .map((v, i) => ({
+        id: i,
+        name: '',
+        price: Number(v) || 0
+      }));
+
+    console.log('before renderEditBuZai');
+    renderEditBuZai();
+
+    // 複数メンバー初期化
+    document.getElementById('eMultiMemberCheck').checked = false;
+    document.getElementById('eMultiMemberArea').style.display = 'none';
+    eMultiRows = [];
+
+    // 調整値引
+    const eAdj = document.getElementById('eAdjustDiscount');
+    if (eAdj) {
+      eAdj.value = r.adjustDiscount || '';
+      if (r.adjustDiscount) {
+        document.getElementById('eAdjustDiscountArea').style.display = 'flex';
+        document.getElementById('eAdjustDiscountBtn').style.display = 'none';
+      } else {
+        document.getElementById('eAdjustDiscountArea').style.display = 'none';
+        document.getElementById('eAdjustDiscountBtn').style.display = 'block';
+      }
     }
-  }
-  document.getElementById('editModal').classList.add('open');
-  // 分配済みの場合は警告表示
-  const editWarn = document.getElementById('editDistWarning');
-  if(/【分配済】/.test(r.memo||'')){
-    editWarn.style.display='block';
-  } else {
-    editWarn.style.display='none';
+
+    // モーダルを開く
+    document.getElementById('editModal').classList.add('open');
+
+    // 分配済み警告
+    const editWarn = document.getElementById('editDistWarning');
+    if (editWarn) {
+      editWarn.style.display = /【分配済】/.test(r.memo || '') ? 'block' : 'none';
+    }
+
+    console.log('openEditModal done');
+  } catch (err) {
+    console.error('openEditModal error:', err);
+    alert('編集モーダルでエラー: ' + err.message);
   }
 }
 function closeEditModal(){ document.getElementById('editModal').classList.remove('open'); editingRecord=null; eSelectedWorks=[]; renderEWorkTags(); }
