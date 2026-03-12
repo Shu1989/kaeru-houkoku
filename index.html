@@ -794,6 +794,9 @@ let memberRates = {}; // GASから取得
 let multiRows = []; // {id, member, amount, material}
 let eMultiRows = [];
 
+  // ===== 履歴一時保持 =====
+let currentHistoryRecords = [];
+
 function toggleMultiMember(){
   const on = document.getElementById('multiMemberCheck').checked;
   document.getElementById('multiMemberArea').style.display = on ? 'block' : 'none';
@@ -2352,12 +2355,14 @@ function renderHistoryList(records, isAdmin){
   return String(b.id || '').localeCompare(String(a.id || ''));
 });
 
+  currentHistoryRecords = records;
+
   if(!records.length){
     list.innerHTML=noteHtml+`<div class="empty-state"><div class="icon">📭</div>記録がありません</div>`;
     return;
   }
 
-  list.innerHTML=noteHtml+records.map(r=>{
+  list.innerHTML=noteHtml+records.map((r, idx)=>{
     const bd=parseBdText(r.bdText||'');
     const canEdit=!isAdmin && !/【分配】[^済]/.test(String(r.memo||'')); // メンバーのみ編集可・受取側は不可
     return `
@@ -2432,7 +2437,7 @@ function renderHistoryList(records, isAdmin){
         })()}
         ${canEdit?`
         <div class="hi-actions">
-          <button class="btn-edit" onclick="openEditModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">✏️ 編集</button>
+          <button class="btn-edit" onclick="openEditModalByIndex(${idx})">✏️ 編集</button>
           <button class="btn-delete" onclick="deleteRecord('${r.id}','${r.member}')">🗑️ 削除</button>
         </div>`:''}
       </div>
@@ -2853,6 +2858,12 @@ function openClientModal(clientName){
     ${items||'<div style="color:#aaa;font-size:13px;">データなし</div>'}
   `;
   document.getElementById('detailModal').classList.add('open');
+}
+
+  function openEditModalByIndex(idx){
+  const r = currentHistoryRecords[idx];
+  if(!r) return;
+  openEditModal(r);
 }
 
 // ===== 編集モーダル =====
