@@ -2245,11 +2245,10 @@ async function loadHistory(){
     }
 
     records.sort((a, b) => {
-  const ta = new Date(a.date || 0).getTime() || 0;
-  const tb = new Date(b.date || 0).getTime() || 0;
+  const ta = getRecordSortTime(a);
+  const tb = getRecordSortTime(b);
 
   if (ta !== tb) return tb - ta;
-
   return String(b.id || '').localeCompare(String(a.id || ''));
 });
 
@@ -2346,12 +2345,11 @@ function renderHistoryList(records, isAdmin){
   const noteHtml='';
 
   records = [...records].sort((a, b) => {
-  const ta = new Date(a.date || 0).getTime() || 0;
-  const tb = new Date(b.date || 0).getTime() || 0;
+  const ta = getRecordSortTime(a);
+  const tb = getRecordSortTime(b);
 
-  if (ta !== tb) return tb - ta; // 新しい日付が上
-
-  return String(b.id || '').localeCompare(String(a.id || '')); // 同日は新しいID順
+  if (ta !== tb) return tb - ta;
+  return String(b.id || '').localeCompare(String(a.id || ''));
 });
 
   if(!records.length){
@@ -2465,6 +2463,32 @@ function splitPlace(place){
     };
   }
   return {name: clean, addr: ''};
+}
+
+  function getRecordSortTime(r){
+  const raw = String(r?.date || '').trim();
+  if(!raw) return 0;
+
+  const m = raw.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if(m){
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const d = Number(m[3]);
+    return new Date(y, mo, d, 12, 0, 0).getTime();
+  }
+
+  const t = new Date(raw).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
+function fmtDate(raw){
+  if(!raw) return '';
+  const d = new Date(raw);
+  if(isNaN(d.getTime())){
+    return String(raw).slice(0,10).replace(/\//g,'-');
+  }
+  const jst = new Date(d.getTime() + 9*60*60*1000);
+  return jst.getFullYear()+'-'+String(jst.getMonth()+1).padStart(2,'0')+'-'+String(jst.getDate()).padStart(2,'0');
 }
 
 function fmtDate(raw){
