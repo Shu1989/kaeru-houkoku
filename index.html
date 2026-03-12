@@ -2885,7 +2885,7 @@ function openEditModal(r){
   // selectを初期化してから値をセット
   buildSelect('eClient', lists.clients, '顧客名を選択');
   buildSelect('eWork',   lists.works,   '作業内容を選択');
-  buildSelect('eBreakdownSelect', lists.bdItems,  '内訳項目を選択');
+  buildSelect('eBreakdownSelect', getBdItemNames(), '内訳項目を選択');
   buildSelect('eGroupSelect',     lists.bdGroups, 'グループ見出しを選択');
   // 既存値を選択状態に
   setSelectOrAdd('eClient', r.client||'', lists.clients);
