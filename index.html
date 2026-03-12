@@ -2862,6 +2862,7 @@ function openClientModal(clientName){
 
   function openEditModalByIndex(idx){
   const r = currentHistoryRecords[idx];
+  alert('idx=' + idx + ' / work=' + (r?.work || 'なし'));
   if(!r) return;
   openEditModal(r);
 }
