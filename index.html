@@ -2130,7 +2130,7 @@ async function submitForm(){
     breakdown:breakdownRows.map(r=>{ if(r.type==='group') return {name:'【'+r.name+'】',price:0,isGroup:true}; const base=Math.round((r.price||0)*(r.qty||1)); const price=r.discount>0?Math.round(base*(1-r.discount/100)):base; return {name:r.name+(r.qty>1?' ×'+r.qty:''),price,origPrice:r.price,qty:r.qty||1,discount:r.discount}; }),
     buZai: buZaiRows.map(r => r.price),
     buZaiTotal: calcBuZaiTotal(),
-    mitsumori: client==='テスコ' ? document.getElementById('chkMitsumori').checked : false,
+    mitsumori: ['テスコ', '長栄'].includes(client) ? document.getElementById('chkMitsumori').checked : false,
     houkokusho: REPORT_CLIENTS.includes(client) ? document.getElementById('chkHoukokusho').checked : false,
     nohinshi:  client==='テスコ' ? document.getElementById('chkNohinshi').checked  : false,
     subtotal
