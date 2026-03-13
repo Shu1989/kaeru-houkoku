@@ -314,7 +314,15 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       </div>
       <div class="form-group">
         <label class="fl" style="color:#888;">作業ID <span style="font-size:11px;color:#aaa;">（任意・外部管理番号）</span></label>
-        <input type="text" id="fJobId" placeholder="例：815000" style="font-family:'DM Mono',monospace;">
+        <input
+  type="text"
+  id="fJobId"
+  placeholder="例：815000"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  maxlength="10"
+  style="font-family:'DM Mono',monospace;"
+>
       </div>
       <div class="form-group">
         <label class="fl">顧客名<span class="req">*</span></label>
@@ -696,7 +704,15 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     </div>
     <div class="form-group">
       <label class="fl" style="color:#888;">作業ID <span style="font-size:11px;color:#aaa;">（任意）</span></label>
-      <input type="text" id="eJobId" placeholder="例：815000" style="font-family:'DM Mono',monospace;">
+      <input
+  type="text"
+  id="eJobId"
+  placeholder="例：815000"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  maxlength="10"
+  style="font-family:'DM Mono',monospace;"
+>
     </div>
     <div class="form-group">
       <label class="fl">顧客名</label>
@@ -2351,7 +2367,7 @@ function resetForm(){
   const fWork = document.getElementById('fWork');
   if(fWork) fWork.selectedIndex = 0;
   // 場所をクリア
-  document.getElementById('fPlace').value=''; clearPlace();
+  clearPlace(false);
   // メモ・ステータス
   document.getElementById('fMemo').value='';
   const adjEl=document.getElementById('adjustDiscount'); if(adjEl) adjEl.value='';
@@ -2399,6 +2415,7 @@ if(nohinRow) nohinRow.style.display = 'flex';
   // ページトップへスクロール
   document.getElementById('appScreen').scrollTop=0;
   window.scrollTo(0,0);
+  document.getElementById('fDate').focus();
 }
 
 // ===== 履歴読み込み =====
@@ -3415,11 +3432,14 @@ function selectPlace(full){
   document.getElementById('placeDisplay').style.display = 'block';
   document.getElementById('placeSuggestions').style.display='none';
 }
-function clearPlace(){
+function clearPlace(keepFocus = true){
   document.getElementById('fPlace').value = '';
   document.getElementById('fPlace').style.display = '';
   document.getElementById('placeDisplay').style.display = 'none';
-  document.getElementById('fPlace').focus();
+
+  if(keepFocus){
+    document.getElementById('fPlace').focus();
+  }
 }
 
 // 外クリックで候補を閉じる
@@ -3430,6 +3450,15 @@ document.addEventListener('click', e=>{
   }
 });
 window.addEventListener('DOMContentLoaded', ()=>{ initPlaceAutocomplete(); });
+
+  document.addEventListener('input', function(e){
+  if(e.target && e.target.id === 'fJobId'){
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  }
+  if(e.target && e.target.id === 'eJobId'){
+    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  }
+});
 
 // ページ読み込み時にURL確認
 window.addEventListener('DOMContentLoaded', async ()=>{
