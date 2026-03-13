@@ -784,7 +784,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 </div>
 
 <script>
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzJUjAjQP-7oXyn0JSJE9GwVlHApa_GIT-vhcQr8IbviNcodBLfzxwc8CmT-ev-A0b9Wg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ozETV3Qjt5dSYJ76HKTLUAhxMD391LwXJd6wsE2xs4bzLlJtUnxRpMcpF1OpSB15gw/exec';
 
 // ===== 配分率設定 =====
 let memberRates = {}; // GASから取得
@@ -3428,7 +3428,7 @@ async function loadDash(){
   const isAdminDash = currentUser === 'admin';
   try{
     if(isAdminDash){
-      const res = await fetch(GAS_URL+'?action=getAllRecords');
+      const res = await fetch(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth || ''));
       const json = await res.json();
       if(json.result==='success'){
         Object.entries(json.all).forEach(([mem, records])=>{
