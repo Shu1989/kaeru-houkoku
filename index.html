@@ -3516,6 +3516,18 @@ async function loadDash(){
   }
   dashAllRecords = all;
 
+  const febRecords = all.filter(r => getMonthKey(r.date) === '2026-02');
+console.log('FEB RECORDS', febRecords.map(r => ({
+  member: r.member,
+  date: r.date,
+  fmtDate: fmtDate(r.date),
+  client: r.client,
+  work: r.work,
+  memo: r.memo,
+  subtotal: r.subtotal,
+  id: r.id
+})));
+
   if(all.length === 0){
     document.getElementById('dashMonthBtns').innerHTML = '';
     document.getElementById('dashContent').innerHTML = '<div class="card"><div style="color:#aaa;font-size:13px;text-align:center;padding:20px;">データがありません</div></div>';
