@@ -784,7 +784,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 </div>
 
 <script>
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw8YJQ3LgjOuT1tPHuaiQaDn68j2Sa7J2Ry_HZx_YhE-Yl3Fv5TFCEn0NwApthYcmV6KA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbydy1MKBSz-cPDAPeXR-ieZvwDJBRok4XyV47eUSdYJFpAu1B2QqZjPjqGtQ0EZ_ucP-A/exec';
 
 // ===== 配分率設定 =====
 let memberRates = {}; // GASから取得
@@ -2222,6 +2222,8 @@ async function submitForm(){
   for(const [mem, val] of entries){
     if(mem === currentUser) continue;
 
+    
+
     const subRecord = {
   ...record,
   action:'add',
@@ -2234,7 +2236,8 @@ async function submitForm(){
   buZai: Number(val.material || 0) > 0 ? [Number(val.material || 0)] : []
 };
 
-    delete subRecord.distSubtotal;
+    console.log('送信者record', record);
+console.log('受取側subRecord', subRecord);
 
     const enc2 = encodeURIComponent(JSON.stringify(subRecord));
     await fetch(GAS_URL + '?data=' + enc2);
