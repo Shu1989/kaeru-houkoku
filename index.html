@@ -2684,21 +2684,31 @@ function splitPlace(place){
 
 function fmtDate(raw){
   if(!raw) return '';
-  const d = new Date(raw);
-  if(isNaN(d.getTime())){
-    return String(raw).slice(0,10).replace(/\//g,'-');
+
+  const s = String(raw).trim();
+
+  // まず YYYY-MM-DD / YYYY/MM/DD をそのまま安全に返す
+  const m = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if(m){
+    return `${m[1]}-${m[2]}-${m[3]}`;
   }
-  const jst = new Date(d.getTime() + 9*60*60*1000);
-  return jst.getFullYear()+'-'+String(jst.getMonth()+1).padStart(2,'0')+'-'+String(jst.getDate()).padStart(2,'0');
+
+  // ISO文字列などだけ Date 変換
+  const d = new Date(s);
+  if(isNaN(d.getTime())){
+    return s.slice(0,10).replace(/\//g,'-');
+  }
+
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return jst.getFullYear() + '-' +
+    String(jst.getMonth() + 1).padStart(2,'0') + '-' +
+    String(jst.getDate()).padStart(2,'0');
 }
 
-function fmtDate(raw){
-  if(!raw) return '';
-  const d = new Date(raw);
-  if(isNaN(d.getTime())){
-    // 文字列そのまま（YYYY-MM-DD形式など）
-    return String(raw).slice(0,10).replace(/\//g,'-');
-  }
+function getMonthKey(raw){
+  const d = fmtDate(raw);
+  return d ? d.slice(0,7) : '';
+}
   // ISOなどをJST変換
   const jst = new Date(d.getTime() + 9*60*60*1000);
   return jst.getFullYear()+'-'+String(jst.getMonth()+1).padStart(2,'0')+'-'+String(jst.getDate()).padStart(2,'0');
@@ -3516,7 +3526,7 @@ async function loadDash(){
   }
 
   // 月一覧
-  const months = [...new Set(all.map(r=>String(r.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const months = [...new Set(all.map(r=>getMonthKey(r.date)).filter(Boolean))].sort().reverse();
   const now = new Date();
   const thisMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
   if(!dashMonth || !months.includes(dashMonth)) dashMonth = months.includes(thisMonth)?thisMonth:(months[0]||'');
@@ -3546,11 +3556,11 @@ function renderDashMember(doneRecs, allRecs){
 
   // 月次推移（自分のみ）
   const allMyDone = dashAllRecords.filter(r=>!String(r.memo||'').startsWith('【継続中】'));
-  const allMonths = [...new Set(allMyDone.map(r=>String(r.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const allMonths = [...new Set(allMyDone.map(r => getMonthKey(r.date)).filter(Boolean))].sort().reverse();
   const now2 = new Date();
   const thisM = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const monthlyRows = allMonths.map(m=>{
-    const mRecs = allMyDone.filter(r=>String(r.date||'').slice(0,7)===m);
+    const mRecs = allMyDone.filter(r => getMonthKey(r.date) === m);
     const mSub  = mRecs.reduce((s,r)=>s+Number(r.subtotal||0),0);
     const mKeijo= mRecs.reduce((s,r)=>s+getKeijo(r),0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;">
@@ -3612,7 +3622,7 @@ function renderDashMember(doneRecs, allRecs){
 
 function renderDash(){
   const isAdminDash = currentUser === 'admin';
-  const records = dashAllRecords.filter(r=>String(r.date||'').slice(0,7)===dashMonth);
+  const records = dashAllRecords.filter(r => getMonthKey(r.date) === dashMonth);
   const doneRecs = records.filter(r=>!String(r.memo||'').startsWith('【継続中】'));
 
   if(!records.length){
@@ -3732,9 +3742,9 @@ function renderDash(){
 
   // ④ 月次推移（全期間・完了のみ）
   const allDone = dashAllRecords.filter(r=>!String(r.memo||'').startsWith('【継続中】'));
-  const allMonths = [...new Set(allDone.map(r=>String(r.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const allMonths = [...new Set(allDone.map(r => getMonthKey(r.date)).filter(Boolean))].sort().reverse();
   const monthlyRows = allMonths.length ? allMonths.map(m=>{
-    const mRecs = allDone.filter(r=>String(r.date||'').slice(0,7)===m);
+    const mRecs = allDone.filter(r => getMonthKey(r.date) === m);
     const mSub  = mRecs.filter(r=>!/【分配】[^済]/.test(String(r.memo||''))).reduce((s,r)=>s+Number(r.subtotal||0),0);
     const mKeijo= mRecs.reduce((s,r)=>s+getKeijo(r),0);
     const now2 = new Date();
@@ -3967,7 +3977,7 @@ async function loadKeijo(){
     return;
   }
 
-  const months = [...new Set(all.map(r=>String(r.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const months = [...new Set(all.map(r => getMonthKey(r.date)).filter(Boolean))].sort().reverse();
   if(!keijoMonth||!months.includes(keijoMonth)) keijoMonth = months.includes(thisMonth)?thisMonth:(months[0]||'');
 
   document.getElementById('keijoMonthBtns').innerHTML = months.map(m=>`
@@ -3975,7 +3985,7 @@ async function loadKeijo(){
       ${m===thisMonth?'📅 ':''}${m.replace('-','年')}月
     </button>`).join('');
 
-  const recs = all.filter(r=>String(r.date||'').slice(0,7)===keijoMonth && !String(r.memo||'').startsWith('【継続中】'));
+  const recs = all.filter(r => getMonthKey(r.date) === keijoMonth && !String(r.memo||'').startsWith('【継続中】'));
 
   if(isAdmin){
     // 管理者：メンバー別カード
