@@ -3903,7 +3903,7 @@ function calcEditBuZaiTotal(){
 let keijoMonth = '';
 
 async function loadKeijo(){
-  document.getElementById('keijoContent').innerHTML = '<div class="loading"><div class="spinner-dark"></div></div>';
+  document.getElementById('keijoContent').innerHTML = '<div class="loading"><div class="spinner-dark"></div><div style="margin-top:10px;">読み込み中…🐸</div></div>';
   // ALL_MEMBERSが空なら再取得
   if(ALL_MEMBERS.length === 0) await fetchMembers();
   const isAdmin = currentUser==='admin';
