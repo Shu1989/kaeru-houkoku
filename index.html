@@ -3630,11 +3630,11 @@ function renderDash(){
   console.log('書類フラグサンプル:', JSON.stringify(docDebug));
   console.log('全レコード数:', dashAllRecords.length);
   const pendingDocs = dashAllRecords.filter(r=>{
-    const memo = String(r.memo||'');
-    if(memo.startsWith('【継続中】')) return false;
-    if(/【分配】[^済]/.test(memo)) return false;  // 受取側は除外
-    return r.mitsumori==='✅' || r.nohinshi==='✅' || r.houkokusho==='✅';
-  });
+    const pendingDocs = dashAllRecords.filter(r=>{
+  const memo = String(r.memo||'');
+  if(/【分配】[^済]/.test(memo)) return false;  // 受取側は除外
+  return r.mitsumori==='✅' || r.nohinshi==='✅' || r.houkokusho==='✅';
+});
   console.log('書類未対応件数:', pendingDocs.length);
   const pendingDocsCard = pendingDocs.length ? `
     <div class="card" style="margin-bottom:12px;border:2px solid #ff6f00;">
