@@ -2687,11 +2687,11 @@ function fmtDate(raw){
 
   const s = String(raw).trim();
 
-  // まず YYYY-MM-DD / YYYY/MM/DD をそのまま安全に返す
-  const m = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
-  if(m){
-    return `${m[1]}-${m[2]}-${m[3]}`;
-  }
+  // 完全な日付文字列だけはそのまま返す
+// 例: 2026-03-01 / 2026/03/01
+if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(s)) {
+  return s.replace(/\//g, '-');
+}
 
   // ISO文字列などだけ Date 変換
   const d = new Date(s);
