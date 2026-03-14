@@ -1072,6 +1072,15 @@ function getKeijo(r){
   return calcKeijoGaku(Number(r.subtotal||0), Number(r.buZaiTotal||0), mem);
 }
 
+  function hasDistSubtotal(r){
+  return r && r.distSubtotal !== undefined && r.distSubtotal !== null && r.distSubtotal !== '';
+}
+
+function getDisplaySubtotal(r){
+  if(hasDistSubtotal(r)) return Number(r.distSubtotal || 0);
+  return Number(r.subtotal || 0);
+}
+
 function renderRateSetting(){
   const list = document.getElementById('rateSettingList');
   list.innerHTML = ALL_MEMBERS.map(m => `
@@ -3558,9 +3567,9 @@ function selectDashMonth(m){ dashMonth=m; loadDash(); }
 
 function renderDashMember(doneRecs, allRecs){
   const rate = memberRates[currentUser]??100;
-  const subtotal = doneRecs.reduce((s,r)=>s+Number(r.subtotal||0),0);
-  const buZaiTotal = doneRecs.reduce((s,r)=>s+Number(r.buZaiTotal||0),0);
-  const keijo = doneRecs.reduce((s,r)=>s+getKeijo(r),0);
+ const subtotal = doneRecs.reduce((s,r)=>s+getDisplaySubtotal(r),0);
+const buZaiTotal = doneRecs.reduce((s,r)=>s+Number(r.buZaiTotal||0),0);
+const keijo = doneRecs.reduce((s,r)=>s+getKeijo(r),0);
   const ongoingCount = allRecs.filter(r=>String(r.memo||'').startsWith('【継続中】')).length;
 
   // 月次推移（自分のみ）
@@ -3570,7 +3579,7 @@ function renderDashMember(doneRecs, allRecs){
   const thisM = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
   const monthlyRows = allMonths.map(m=>{
     const mRecs = allMyDone.filter(r => getMonthKey(r.date) === m);
-    const mSub  = mRecs.reduce((s,r)=>s+Number(r.subtotal||0),0);
+    const mSub  = mRecs.reduce((s,r)=>s+getDisplaySubtotal(r),0);
     const mKeijo= mRecs.reduce((s,r)=>s+getKeijo(r),0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;">
       <div>
@@ -3588,8 +3597,9 @@ function renderDashMember(doneRecs, allRecs){
   // 案件リスト（タップで詳細モーダル）
   const items = [...doneRecs].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).map(r=>{
     const sp = splitPlace(r.place||'');
-    const keijo = getKeijo(r);
-    const bz = Number(r.buZaiTotal||0);
+const keijo = getKeijo(r);
+const displaySubtotal = getDisplaySubtotal(r);
+const bz = Number(r.buZaiTotal||0);
     const ridx = dashAllRecords.indexOf(r);
     return '<div data-ridx="'+ridx+'" data-mem="'+encodeURIComponent(currentUser)+'" onclick="openDetailModal(dashAllRecords[this.dataset.ridx],decodeURIComponent(this.dataset.mem))"'
       +' style="padding:10px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;">'
@@ -3602,8 +3612,8 @@ function renderDashMember(doneRecs, allRecs){
       +'<div style="color:#aaa;font-size:11px;margin-top:2px;">'+fmtDate(r.date)+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;margin-left:8px;">'
-      +'<div style="color:#2e7d32;font-weight:700;font-size:15px;">¥'+keijo.toLocaleString()+'</div>'
-      +'<div style="color:#aaa;font-size:11px;">小計 ¥'+Number(r.subtotal||0).toLocaleString()+'</div>'
+      +'<div style="color:#2e7d32;font-weight:700;font-size:15px;">¥'+displaySubtotal.toLocaleString()+'</div>'
++'<div style="color:#aaa;font-size:11px;">計上額 ¥'+keijo.toLocaleString()+'</div>'
       +'</div>'
       +'</div>'
       +'</div>';
