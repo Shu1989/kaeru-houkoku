@@ -3358,6 +3358,24 @@ async function saveEdit(){
     buZaiTotal: calcEditBuZaiTotal()
   };
 
+  if(eDist && eDist[currentUser] !== undefined){
+  updated.distSubtotal = Number(eDist[currentUser] || 0);
+}
+
+  if(eDist){
+  const others = Object.keys(eDist).filter(m => m !== currentUser);
+  const breakdown = Object.entries(eDist)
+    .map(([m, amt]) => `${m}:${amt}:0`)
+    .join(',');
+
+  if(others.length > 0){
+    const suffix = '【分配済】' + others.join('・') + 'へ';
+    updated.memo = updated.memo ? updated.memo + ' ' + suffix : suffix;
+  }
+
+  updated.memo = (updated.memo || '') + '|内訳:' + breakdown;
+}
+
   try{
     const encoded=encodeURIComponent(JSON.stringify(updated));
     const res=await fetch(GAS_URL+'?data='+encoded);
@@ -3365,6 +3383,9 @@ async function saveEdit(){
     if(json.result==='success'){
       // 複数メンバー分配
       if(eDist){
+        const editBreakdownText = Object.entries(eDist)
+  　　　.map(([m, amt]) => `${m}:${amt}:0`)
+  　　　.join(',');
         for(const [mem, amt] of Object.entries(eDist)){
           if(mem===currentUser) continue;
           const subRec = {
@@ -3375,10 +3396,10 @@ async function saveEdit(){
   client:updated.client,
   place:updated.place,
   work:updated.work,
-  memo:`【分配】${currentUser}より`,
+  memo:`【分配】${currentUser}より|内訳:${editBreakdownText}`,
   breakdown:updated.breakdown,
   subtotal: updated.subtotal,  // 案件小計
-  distSubtotal: amt,           // ← 受取側の分配額
+  distSubtotal:Number(amt || 0),           // ← 受取側の分配額
   buZai:[],
   buZaiTotal:0
 };
