@@ -2994,6 +2994,7 @@ function openDetailModal(r, member){
   const bd = parseBdText(r.bdText||'');
   const keijo = getKeijo(r);
   const rate = memberRates[member]??100;
+  const displaySubtotal = getDisplaySubtotal(r);
   const isOngoing = String(r.memo||'').startsWith('【継続中】');
   const {badge: distBadge, clean: memoNoDist} = extractDistBadge(r.memo||'');
   const cleanMemo = stripSubDateFromMemo(isOngoing ? memoNoDist.replace('【継続中】','').trim() : memoNoDist);
@@ -3011,13 +3012,22 @@ function openDetailModal(r, member){
     return '<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>'+b.name+'</span><span style="font-family:DM Mono,monospace;">¥'+Number(b.price).toLocaleString()+'</span></div>';
   }
   const monoFont = 'DM Mono';
-  const bdHtmlDetail = bd.length
-    ? '<div style="background:#f8f8f8;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">'
-      + bd.map(makeBdRow).join('')
-      + '<div style="display:flex;justify-content:space-between;padding:6px 0 0;border-top:1px solid #ddd;font-weight:700;margin-top:4px;"><span>小計</span><span style="font-family:'+monoFont+',monospace;color:#7b1fa2;">¥'+Number(r.subtotal||0).toLocaleString()+'</span></div>'
-      + (Number(r.buZaiTotal||0)>0 ? '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#7b1fa2;"><span>部材</span><span style="font-family:'+monoFont+',monospace;">¥'+Number(r.buZaiTotal).toLocaleString()+'</span></div>' : '')
-      + '</div>'
-    : '';
+const bdHtmlDetail = bd.length
+  ? '<div style="background:#f8f8f8;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">'
+    + bd.map(makeBdRow).join('')
+    + '<div style="display:flex;justify-content:space-between;padding:6px 0 0;border-top:1px solid #ddd;font-weight:700;margin-top:4px;"><span>小計</span><span style="font-family:'+monoFont+',monospace;color:#7b1fa2;">¥'+Number(r.subtotal||0).toLocaleString()+'</span></div>'
+    + (
+        displaySubtotal !== Number(r.subtotal||0)
+          ? '<div style="display:flex;justify-content:space-between;padding:4px 0 0;font-size:12px;color:#1565c0;font-weight:700;"><span>分配額</span><span style="font-family:'+monoFont+',monospace;">¥'+displaySubtotal.toLocaleString()+'</span></div>'
+          : ''
+      )
+    + (
+        Number(r.buZaiTotal||0) > 0
+          ? '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#7b1fa2;"><span>部材</span><span style="font-family:'+monoFont+',monospace;">¥'+Number(r.buZaiTotal).toLocaleString()+'</span></div>'
+          : ''
+      )
+    + '</div>'
+  : '';
 
   document.getElementById('detailModalContent').innerHTML = `
     <div style="margin-bottom:12px;">
