@@ -1100,12 +1100,8 @@ function getKeijo(r){
 function getDisplaySubtotal(r){
   if(hasDistSubtotal(r)) return Number(r.distSubtotal || 0);
 
-  // 分配受取案件は memo の内訳から「その人の分配額」を拾う
-  const memo = String(r?.memo || '');
-  if(memo.includes('【分配】')){
-    const distAmount = getDistAmountFromMemo(r);
-    if(distAmount !== null) return Number(distAmount || 0);
-  }
+  const distAmount = getDistAmountFromMemo(r);
+  if(distAmount !== null) return Number(distAmount || 0);
 
   return Number(r?.subtotal || 0);
 }
