@@ -1076,16 +1076,38 @@ function getKeijo(r){
   return r && r.distSubtotal !== undefined && r.distSubtotal !== null && r.distSubtotal !== '';
 }
 
+  function getDistAmountFromMemo(r){
+  const memo = String(r?.memo || '');
+  const targetMember = String(r?.member || currentUser || '').trim();
+
+  const m = memo.match(/\|内訳:([^\|\n\r]+)/);
+  if(!m) return null;
+
+  const items = m[1].split(',');
+  for(const item of items){
+    const parts = item.split(':');
+    const name = String(parts[0] || '').trim();
+    const amount = Number(parts[1] || 0);
+
+    if(name === targetMember){
+      return amount;
+    }
+  }
+
+  return null;
+}
+
 function getDisplaySubtotal(r){
   if(hasDistSubtotal(r)) return Number(r.distSubtotal || 0);
 
-  // 分配受取案件なら計上額を使う
-  const memo = String(r.memo||'');
+  // 分配受取案件は memo の内訳から「その人の分配額」を拾う
+  const memo = String(r?.memo || '');
   if(memo.includes('【分配】')){
-    return Number(r.keijo || 0);
+    const distAmount = getDistAmountFromMemo(r);
+    if(distAmount !== null) return Number(distAmount || 0);
   }
 
-  return Number(r.subtotal || 0);
+  return Number(r?.subtotal || 0);
 }
 
 function renderRateSetting(){
