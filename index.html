@@ -2229,6 +2229,9 @@ async function submitForm(){
     subtotal
   };
 
+  record.shareGroupId = record.id;
+　record.parentId = null;
+
   // 複数メンバー分配を取得
   const dist = getMultiDistribution();
   let breakdown = '';
@@ -2308,6 +2311,8 @@ async function submitForm(){
   action:'add',
   id: record.id,
   member: mem,
+  parentId: record.id,
+　shareGroupId: record.id,    
   subtotal: record.subtotal,              // 案件小計は保持
   distSubtotal: Number(val.amount || 0),  // ← これが超重要
   memo: (status==='継続中' ? '【継続中】' : '') + '【分配】' + currentUser + 'より' + (memo ? ' ' + memo : '') + '|内訳:' + breakdown,
