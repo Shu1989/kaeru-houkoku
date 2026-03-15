@@ -927,8 +927,13 @@ function copyLineMessage(record, docLabel){
   try{
     console.log('copyLineMessage record =', record);
 
-    const sourceMemberName = getSourceMemberNameFromRecord(record);
-    const memberCode = getCodeFromMemberName(sourceMemberName);
+    const sourceMemberName =
+  getSourceMemberNameFromRecord(record) ||
+  record.member ||
+  record.ownerMember ||
+  '';
+
+const memberCode = getCodeFromMemberName(sourceMemberName);
     const detailUrl = buildRecordDetailUrl(record.id, memberCode);
 
     const text = [
