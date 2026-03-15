@@ -923,7 +923,8 @@ function buildLineMessage(record, docLabel){
   return record.member || '';
 }
   function isDistributedChildRecord(record){
-  return /\[分配\].+より/.test(String(record.memo || ''));
+  const memo = String(record.memo || '');
+  return memo.includes('[分配]') && memo.includes('より');
 }
 
 function copyLineMessage(record, docLabel){
@@ -2824,6 +2825,13 @@ function renderHistoryList(records, isAdmin){
         })()}
         ${(()=>{
   const badges = [];
+
+          console.log('badge check', {
+  member: r.member,
+  ownerMember: r.ownerMember,
+  memo: r.memo,
+  isChild: isDistributedChildRecord(r)
+});
 
   if(r.mitsumori === '✅'){
     badges.push('<span style="background:#e3f0fb;color:#1565c0;border:1px solid #90caf9;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 見積書 未対応</span>');
