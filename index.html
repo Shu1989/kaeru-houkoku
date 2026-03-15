@@ -1337,7 +1337,7 @@ async function saveMemberSettings(ratesOnly=false){
     });
   }
 
-  const members = memberSettingRows.filter(r=>r.name&&r.code).map(r=>({name:r.name, code:r.code, rate:r.rate}));
+  const members = ['all', ...new Set(records.map(r => r.member || r.ownerMember).filter(Boolean))];
   try{
     const encoded = encodeURIComponent(JSON.stringify({action:'saveMembers', members}));
     const res = await fetch(GAS_URL+'?data='+encoded);
