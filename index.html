@@ -876,11 +876,13 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ozETV3Qjt5dSYJ76HKTL
 }
 
 function buildRecordDetailUrl(recordId, memberCode){
-  const url = new URL(window.location.href);
-  url.searchParams.set('member', memberCode || getCurrentMemberCode());
+  if(!memberCode){
+    throw new Error('担当者コードが見つかりません');
+  }
+
+  const url = new URL(window.location.origin + window.location.pathname);
+  url.searchParams.set('member', memberCode);
   url.searchParams.set('recordId', recordId);
-  url.searchParams.delete('copyId');
-  url.searchParams.delete('copyMember');
   return url.toString();
 }
 
@@ -907,20 +909,31 @@ function buildLineMessage(record, docLabel){
   ].join('\n');
 }
 
-async function copyLineMessage(record, docLabel){
-  const text = buildLineMessage(record, docLabel);
-
+function copyLineMessage(record, docLabel){
   try{
-    await navigator.clipboard.writeText(text);
-    alert(`✅ LINE送信用テキストをコピーしました\n\n${docLabel}`);
+    const memberCode = getCodeFromMemberName(record.member);
+    const detailUrl = buildRecordDetailUrl(record.id, memberCode);
+
+    const text = [
+      `${docLabel}を作成しました。`,
+      '',
+      '【案件情報】',
+      `顧客：${record.client || ''}`,
+      `場所：${shortPlaceForLine(record.place || '')}`,
+      `作業内容：${record.work || ''}`,
+      `作業ID：${record.jobId || 'なし'}`,
+      '',
+      '案件詳細はこちら👇',
+      detailUrl
+    ].join('\n');
+
+    navigator.clipboard.writeText(text).then(()=>{
+      alert('LINE送信用メッセージをコピーしました');
+    }).catch(()=>{
+      alert('コピーに失敗しました');
+    });
   }catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert(`✅ LINE送信用テキストをコピーしました\n\n${docLabel}`);
+    alert('URL作成エラー: ' + e.message);
   }
 }
 
