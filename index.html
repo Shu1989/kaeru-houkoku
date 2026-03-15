@@ -925,21 +925,6 @@ function buildLineMessage(record, docLabel){
   function isDistributedChildRecord(record){
   const memo = String(record.memo || '');
 
-  // 全角カッコも半角カッコも吸収
-  const normalized = memo
-    .replace(/［/g, '[')
-    .replace(/］/g, ']')
-    .replace(/【/g, '[')
-    .replace(/】/g, ']')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return (
-    /\[分配\].*より/.test(normalized) ||
-    /\[分配済\].*へ/.test(normalized)
-  );
-}
-
   // 分配先カード
   if (memo.includes('[分配]') && memo.includes('より')) return true;
   if (memo.includes('[分配済]') && memo.includes('へ')) return true;
