@@ -924,7 +924,12 @@ function buildLineMessage(record, docLabel){
 }
   function isDistributedChildRecord(record){
   const memo = String(record.memo || '');
-  return memo.includes('[分配]') && memo.includes('より');
+
+  // 分配先カード
+  if (memo.includes('[分配]') && memo.includes('より')) return true;
+  if (memo.includes('[分配済]') && memo.includes('へ')) return true;
+
+    return false;
 }
 
 function copyLineMessage(record, docLabel){
