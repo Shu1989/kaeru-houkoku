@@ -2748,24 +2748,26 @@ function renderHistoryList(records, isAdmin){
     return;
   }
 
-  list.innerHTML=noteHtml+records.map((r, idx)=>{
-    const bd=parseBdText(r.bdText||'');
-    const canEdit=!isAdmin && !/【分配】[^済]/.test(String(r.memo||'')); // メンバーのみ編集可・受取側は不可
-    return `
+  list.innerHTML = noteHtml + records.map((r, idx) => {
+  const bd = parseBdText(r.bdText || '');
+  const canEdit = !isAdmin && !/[分配][済]/.test(String(r.memo || ''));
+  const detailDomId = `d-${idx}-${String(r.id || 'noid')}`;
+
+  return `
     <div class="history-item">
-      ${isAdmin?`<div class="hi-member-tag">${r.member || r.ownerMember || ''}</div>`:''}
-      <div class="hi-top" onclick="toggleDetail('d${r.id}')">
+      ${isAdmin ? `<div class="hi-member-tag">${r.member || r.ownerMember || ''}</div>` : ''}
+      <div class="hi-top" onclick="toggleDetail('${detailDomId}')">
         <div>
-          <div class="hi-title">${r.work||''}</div>
-          <div class="hi-client">${r.client||''}${r.jobId?` <span style="font-size:11px;color:#1565c0;background:#e3f0fb;border-radius:5px;padding:1px 6px;font-family:'DM Mono',monospace;">${r.jobId}</span>`:''}</div>
+          <div class="hi-title">${r.work || ''}</div>
+          <div class="hi-client">${r.client || ''}${r.jobId ? ` <span style="font-size:11px;color:#1565c0;background:#e3f0fb;border-radius:10px;padding:2px 6px;">${r.jobId}</span>` : ''}</div>
           <div class="hi-place">📍 ${fmtPlace(r.place)}</div>
         </div>
         <div style="text-align:right;">
           <div class="hi-date">${fmtDate(r.date)}</div>
-          <div class="hi-amount">¥${Number(r.subtotal||0).toLocaleString()}</div>
+          <div class="hi-amount">¥${Number(r.subtotal || 0).toLocaleString()}</div>
         </div>
       </div>
-      <div class="hi-detail" id="d${r.id}">
+      <div class="hi-detail" id="${detailDomId}">
         <div class="hi-breakdown">
           ${bd.map(b=>{ const isGroup=b.name.startsWith('【')&&b.name.endsWith('】')&&b.price===0; return `<div class="row"><span>${b.name}</span>${isGroup?'':'<span>¥'+Number(b.price).toLocaleString()+'</span>'}</div>`; }).join('')}
           <div class="row total"><span>小計</span><span>¥${Number(r.subtotal||0).toLocaleString()}</span></div>
