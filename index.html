@@ -317,10 +317,8 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <input
   type="text"
   id="fJobId"
-  placeholder="例：815000"
-  inputmode="numeric"
-  pattern="[0-9]*"
-  maxlength="10"
+  placeholder="例：815000 / K171856"
+  maxlength="20"
   style="font-family:'DM Mono',monospace;"
 >
       </div>
@@ -707,10 +705,8 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       <input
   type="text"
   id="eJobId"
-  placeholder="例：815000"
-  inputmode="numeric"
-  pattern="[0-9]*"
-  maxlength="10"
+  placeholder="例：815000 / K171856"
+  maxlength="20"
   style="font-family:'DM Mono',monospace;"
 >
     </div>
@@ -3536,14 +3532,7 @@ document.addEventListener('click', e=>{
 });
 window.addEventListener('DOMContentLoaded', ()=>{ initPlaceAutocomplete(); });
 
-  document.addEventListener('input', function(e){
-  if(e.target && e.target.id === 'fJobId'){
-    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-  }
-  if(e.target && e.target.id === 'eJobId'){
-    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-  }
-});
+  
 
 // ページ読み込み時にURL確認
 window.addEventListener('DOMContentLoaded', async ()=>{
