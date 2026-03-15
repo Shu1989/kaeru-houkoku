@@ -2748,7 +2748,7 @@ function renderHistoryList(records, isAdmin){
     const canEdit=!isAdmin && !/【分配】[^済]/.test(String(r.memo||'')); // メンバーのみ編集可・受取側は不可
     return `
     <div class="history-item">
-      ${isAdmin?`<div class="hi-member-tag">${r.member}</div>`:''}
+      ${isAdmin?`<div class="hi-member-tag">${r.member || r.ownerMember || ''}</div>`:''}
       <div class="hi-top" onclick="toggleDetail('d${r.id}')">
         <div>
           <div class="hi-title">${r.work||''}</div>
