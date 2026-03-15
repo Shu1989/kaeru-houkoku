@@ -837,6 +837,12 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ozETV3Qjt5dSYJ76HKTL
   return params.get('member') || '';
 }
 
+  function getCodeFromMemberName(name){
+  return Object.keys(MEMBER_CODES_MAP).find(code => MEMBER_CODES_MAP[code] === name) || '';
+}
+
+  
+
   async function openRecordFromUrl(){
   const params = new URLSearchParams(window.location.search);
   const recordId = params.get('recordId');
@@ -884,7 +890,7 @@ function shortPlaceForLine(place){
 }
 
 function buildLineMessage(record, docLabel){
-  const memberCode = getCurrentMemberCode();
+  const memberCode = getCodeFromMemberName(record.member || currentUser) || getCurrentMemberCode();
   const detailUrl = buildRecordDetailUrl(record.id, memberCode);
 
   return [
