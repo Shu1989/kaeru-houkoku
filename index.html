@@ -832,6 +832,92 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ozETV3Qjt5dSYJ76HKTLUAhxMD391LwXJd6wsE2xs4bzLlJtUnxRpMcpF1OpSB15gw/exec';
 
+  function getCurrentMemberCode(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get('member') || '';
+}
+
+  async function openRecordFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const recordId = params.get('recordId');
+  if(!recordId || !currentUser) return;
+
+  try{
+    const res = await fetch(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser));
+    const json = await res.json();
+    const records = (json.records || []).map(r => ({ ...r, member: currentUser }));
+
+    const target = records.find(r => String(r.id) === String(recordId));
+    if(!target){
+      switchTab('history', document.querySelector('.tab-btn[onclick*="history"]'));
+      setTimeout(()=>{
+        alert('対象案件が見つかりませんでした');
+      }, 200);
+      return;
+    }
+
+    currentHistoryRecords = records;
+
+    switchTab('history', document.querySelector('.tab-btn[onclick*="history"]'));
+
+    setTimeout(()=>{
+      openDetailModal(target, currentUser);
+    }, 250);
+
+  }catch(e){
+    console.warn('recordId open error:', e);
+  }
+}
+
+function buildRecordDetailUrl(recordId, memberCode){
+  const url = new URL(window.location.href);
+  url.searchParams.set('member', memberCode || getCurrentMemberCode());
+  url.searchParams.set('recordId', recordId);
+  url.searchParams.delete('copyId');
+  url.searchParams.delete('copyMember');
+  return url.toString();
+}
+
+function shortPlaceForLine(place){
+  const p = fmtPlace(place || '');
+  return p.length > 40 ? p.slice(0, 40) + '…' : p;
+}
+
+function buildLineMessage(record, docLabel){
+  const memberCode = getCurrentMemberCode();
+  const detailUrl = buildRecordDetailUrl(record.id, memberCode);
+
+  return [
+    `${docLabel}を作成しました。`,
+    '',
+    '【案件情報】',
+    `顧客：${record.client || ''}`,
+    `場所：${shortPlaceForLine(record.place || '')}`,
+    `作業内容：${record.work || ''}`,
+    `作業ID：${record.jobId || 'なし'}`,
+    '',
+    '案件詳細はこちら👇',
+    detailUrl
+  ].join('\n');
+}
+
+async function copyLineMessage(record, docLabel){
+  const text = buildLineMessage(record, docLabel);
+
+  try{
+    await navigator.clipboard.writeText(text);
+    alert(`✅ LINE送信用テキストをコピーしました\n\n${docLabel}`);
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert(`✅ LINE送信用テキストをコピーしました\n\n${docLabel}`);
+  }
+}
+
 function onlyDigits(value){
   return String(value || '').replace(/\D/g, '');
 }
@@ -1376,7 +1462,11 @@ async function checkUrlLogin(){
   if(adminArea) adminArea.style.display = member==='admin' ? '' : 'none';
   document.getElementById('dashTabBtn').style.display    = 'inline-block'; // 全員表示
   setTimeout(initPlaceAutocomplete, 300);
-  initSelects(); renderBreakdown(); renderWorkCandidateList(''); checkReceivedDistributionPopup();
+  initSelects();
+renderBreakdown();
+renderWorkCandidateList('');
+checkReceivedDistributionPopup();
+openRecordFromUrl();
 }
 
 // ===== セレクト =====
@@ -2683,28 +2773,43 @@ function renderHistoryList(records, isAdmin){
             + (pureMemo ? '<div class="hi-memo"><div class="memo-label">メモ</div>'+pureMemo+'</div>' : '');
         })()}
         ${(()=>{
-          const badges = [];
+  const badges = [];
 
-if(r.mitsumori === '✅'){
-  badges.push('<span style="background:#e3f0fb;color:#1565c0;border:1px solid #90caf9;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 見積書 未対応</span>');
-} else if(r.mitsumori === '済'){
-  badges.push('<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">✅ 見積書 済</span>');
-}
+  if(r.mitsumori === '✅'){
+    badges.push('<span style="background:#e3f0fb;color:#1565c0;border:1px solid #90caf9;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 見積書 未対応</span>');
+  } else if(r.mitsumori === '済'){
+    badges.push(`
+      <button
+        onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '見積書')"
+        style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"
+      >✅ 見積書 済 → LINEコピー</button>
+    `);
+  }
 
-if(r.nohinshi === '✅'){
-  badges.push('<span style="background:#f3e8fc;color:#6a1b9a;border:1px solid #ce93d8;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 納品書 未対応</span>');
-} else if(r.nohinshi === '済'){
-  badges.push('<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">✅ 納品書 済</span>');
-}
+  if(r.nohinshi === '✅'){
+    badges.push('<span style="background:#f3e8fc;color:#6a1b9a;border:1px solid #ce93d8;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 納品書 未対応</span>');
+  } else if(r.nohinshi === '済'){
+    badges.push(`
+      <button
+        onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '納品書')"
+        style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"
+      >✅ 納品書 済 → LINEコピー</button>
+    `);
+  }
 
-if(r.houkokusho === '✅'){
-  badges.push('<span style="background:#fff8e1;color:#e65100;border:1px solid #ffcc80;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📋 報告書 未対応</span>');
-} else if(r.houkokusho === '済'){
-  badges.push('<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">✅ 報告書 済</span>');
-}
+  if(r.houkokusho === '✅'){
+    badges.push('<span style="background:#fff8e1;color:#e65100;border:1px solid #ffcc80;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📋 報告書 未対応</span>');
+  } else if(r.houkokusho === '済'){
+    badges.push(`
+      <button
+        onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '報告書')"
+        style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"
+      >✅ 報告書 済 → LINEコピー</button>
+    `);
+  }
 
-return badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${badges.join('')}</div>` : '';
-        })()}
+  return badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${badges.join('')}</div>` : '';
+})()}
         ${canEdit?`
         <div class="hi-actions">
           <button class="btn-edit" onclick="openEditModalByIndex(${idx})">✏️ 編集</button>
