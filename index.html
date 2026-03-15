@@ -916,6 +916,7 @@ function buildLineMessage(record, docLabel){
 
 function copyLineMessage(record, docLabel){
   try{
+    console.log('copyLineMessage record =', record);
     const memberCode = getCodeFromMemberName(record.member);
     const detailUrl = buildRecordDetailUrl(record.id, memberCode);
 
