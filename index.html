@@ -2611,29 +2611,30 @@ async function loadHistory(){
   document.getElementById('adminFilter').style.display=isAdmin?'block':'none';
 
   try{
-    let records=[];
-    if(isAdmin){
-      // 管理者：全メンバー＋adminシート分取得
-      const fetches=[...ALL_MEMBERS, 'admin'].map(m=>
-        fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m))
-          .then(r=>r.json()).then(j=>(j.records||[]).map(r=>({...r,member:m})))
-          .catch(()=>[])
-      );
-      const results=await Promise.all(fetches);
-      records=results.flat();
-    } else {
-      const res=await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
-      const json=await res.json();
-      records=(json.records||[]).map(r=>({...r,member:currentUser}));
-    }
+  let records=[];
+  if(isAdmin){
+    // 管理者：全メンバー＋adminシート分取得
+    const fetches=[...ALL_MEMBERS, 'admin'].map(m=>
+      fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m))
+        .then(r=>r.json())
+        .then(j=>(j.records||[]).map(r=>({...r, ownerMember:m})))
+        .catch(()=>[])
+    );
+    const results=await Promise.all(fetches);
+    records=results.flat();
+  } else {
+    const res=await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
+    const json=await res.json();
+    records=(json.records||[]).map(r=>({...r, ownerMember:currentUser}));
+  }
 
-    records.sort((a, b) => {
-  const ta = getRecordSortTime(a);
-  const tb = getRecordSortTime(b);
+  records.sort((a, b) => {
+    const ta = getRecordSortTime(a);
+    const tb = getRecordSortTime(b);
 
-  if (ta !== tb) return tb - ta;
-  return String(b.id || '').localeCompare(String(a.id || ''));
-});
+    if (ta !== tb) return tb - ta;
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
 
     if(isAdmin){
       const members=['all',...new Set(records.map(r=>r.member))];
