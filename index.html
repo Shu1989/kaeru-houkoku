@@ -933,10 +933,8 @@ function buildLineMessage(record, docLabel){
     .replace(/\s+/g, ' ')
     .trim();
 
-  return (
-    /\[分配\].*より/.test(normalized) ||
-    /\[分配済\].*へ/.test(normalized)
-  );
+  // child は「[分配] ○○より」だけ
+  return /\[分配\].*より/.test(normalized);
 }
 
 function copyLineMessage(record, docLabel){
