@@ -831,6 +831,10 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ozETV3Qjt5dSYJ76HKTLUAhxMD391LwXJd6wsE2xs4bzLlJtUnxRpMcpF1OpSB15gw/exec';
 
+function onlyDigits(value){
+  return String(value || '').replace(/\D/g, '');
+}
+  
 // ===== 配分率設定 =====
 let memberRates = {}; // GASから取得
 
@@ -909,13 +913,14 @@ function renderMultiRows(){
             <span style="width:60px;font-size:13px;color:#666;flex-shrink:0;">計上額</span>
             <span style="font-size:13px;color:#888;">¥</span>
             <input
-              type="number"
-              placeholder="0"
-              min="0"
-              value="${r.amount || ''}"
-              oninput="multiRows[${i}].amount=Number(this.value)||0;updateMultiTotal()"
-              style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
-            >
+  type="text"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  placeholder="0"
+  value="${r.amount || ''}"
+  oninput="this.value=onlyDigits(this.value); multiRows[${i}].amount=Number(this.value)||0; updateMultiTotal()"
+  style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
+>
           </div>
         </div>
       `;
@@ -932,26 +937,28 @@ function renderMultiRows(){
           <span style="width:60px;font-size:13px;color:#666;flex-shrink:0;">計上額</span>
           <span style="font-size:13px;color:#888;">¥</span>
           <input
-            type="number"
-            placeholder="0"
-            min="0"
-            value="${r.amount || ''}"
-            oninput="multiRows[${i}].amount=Number(this.value)||0;updateMultiTotal()"
-            style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
-          >
+  type="text"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  placeholder="0"
+  value="${r.amount || ''}"
+  oninput="this.value=onlyDigits(this.value); multiRows[${i}].amount=Number(this.value)||0; updateMultiTotal()"
+  style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
+>
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="width:60px;font-size:13px;color:#666;flex-shrink:0;">部材</span>
           <span style="font-size:13px;color:#888;">¥</span>
           <input
-            type="number"
-            placeholder="0"
-            min="0"
-            value="${r.material || ''}"
-            oninput="multiRows[${i}].material=Number(this.value)||0"
-            style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
-          >
+  type="text"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  placeholder="0"
+  value="${r.material || ''}"
+  oninput="this.value=onlyDigits(this.value); multiRows[${i}].material=Number(this.value)||0"
+  style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:15px;font-family:'DM Mono',monospace;text-align:right;"
+>
         </div>
       </div>
     `;
@@ -1512,10 +1519,9 @@ function renderBuZai(){
   const totalRow = document.getElementById('buZaiTotalRow');
   if(!list) return;
   list.innerHTML = buZaiRows.map((r,i) => `
-    <div style="display:flex;align-items:center;gap:6px;">
-      <input type="number" placeholder="金額を入力" min="0" value="${r.price||''}"
-        oninput="buZaiRows[${i}].price=Number(this.value)||0;calcBuZaiTotal()"
-        style="flex:1;font-family:'DM Mono',monospace;font-size:15px;text-align:right;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;">
+   <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="金額を入力" value="${r.price||''}"
+  oninput="this.value=onlyDigits(this.value); buZaiRows[${i}].price=Number(this.value)||0; calcBuZaiTotal()"
+  style="flex:1;font-family:'DM Mono',monospace;font-size:15px;text-align:right;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;">
       <button class="btn-remove-row" onclick="removeBuZaiRow(${r.id})">×</button>
     </div>`).join('');
   if(totalRow) totalRow.style.display = buZaiRows.length ? 'flex' : 'none';
@@ -1941,14 +1947,15 @@ function renderBreakdown(){
 
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <input
-              type="number"
-              placeholder="単価"
-              min="0"
-              value="${r.price || ''}"
-              oninput="updateBdPrice(${r.id},this.value)"
-              style="flex:2;min-width:0;font-family:'DM Mono',monospace;font-size:15px;text-align:right;"
-              title="単価"
-            >
+  　　　　　　type="text"
+  　　　　　　inputmode="numeric"
+  　　　　　　pattern="[0-9]*"
+  　　　　　　placeholder="単価"
+  　　　　　　value="${r.price || ''}"
+  　　　　　　oninput="this.value=onlyDigits(this.value); updateBdPrice(${r.id},this.value)"
+  　　　　　　style="flex:2;min-width:0;font-family:'DM Mono',monospace;font-size:15px;text-align:right;"
+  　　　　　　title="単価"
+　　　　　　　　>
             <span style="font-size:12px;color:var(--text3);flex-shrink:0;">×</span>
             <input
               type="number"
@@ -3251,10 +3258,11 @@ function closeEditModal(){ document.getElementById('editModal').classList.remove
       >
       <span style="font-size:12px;color:#888;">¥</span>
       <input
-        type="number"
-        value="${r.price || 0}"
-        min="0"
-        oninput="editBreakdownRows[${i}].price=Number(this.value)||0; calcEditSubtotal()"
+  type="text"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  value="${r.price || 0}"
+  oninput="this.value=onlyDigits(this.value); editBreakdownRows[${i}].price=Number(this.value)||0; calcEditSubtotal()"
         style="width:110px;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;text-align:right;font-family:'DM Mono',monospace;"
       >
       <button
@@ -4002,8 +4010,8 @@ function renderEditBuZai(){
     <div style="display:flex;gap:6px;align-items:center;">
       <input type="text" placeholder="部材名（任意）" value="${r.name||''}" oninput="editBuZaiRows[${i}].name=this.value"
         style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;">
-      <input type="number" placeholder="金額" value="${r.price||''}" min="0"
-        oninput="editBuZaiRows[${i}].price=Number(this.value)||0;calcEditBuZaiTotal()"
+      <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="金額" value="${r.price||''}"
+  oninput="this.value=onlyDigits(this.value); editBuZaiRows[${i}].price=Number(this.value)||0; calcEditBuZaiTotal()"
         style="width:100px;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:'DM Mono',monospace;text-align:right;">
       <button onclick="removeEditBuZaiRow(${r.id})" style="background:#ffebee;border:none;border-radius:6px;padding:6px 10px;color:#c62828;font-size:16px;cursor:pointer;">×</button>
     </div>`).join('');
