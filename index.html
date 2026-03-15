@@ -914,10 +914,21 @@ function buildLineMessage(record, docLabel){
   ].join('\n');
 }
 
+  function getSourceMemberNameFromRecord(record){
+  const memo = String(record.memo || '');
+
+  const m = memo.match(/\[分配\]\s*([^より]+)より/);
+  if(m && m[1]) return m[1].trim();
+
+  return record.member || '';
+}
+
 function copyLineMessage(record, docLabel){
   try{
     console.log('copyLineMessage record =', record);
-    const memberCode = getCodeFromMemberName(record.member);
+
+    const sourceMemberName = getSourceMemberNameFromRecord(record);
+    const memberCode = getCodeFromMemberName(sourceMemberName);
     const detailUrl = buildRecordDetailUrl(record.id, memberCode);
 
     const text = [
