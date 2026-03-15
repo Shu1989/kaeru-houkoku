@@ -1514,12 +1514,22 @@ function renderBuZai(){
   const list = document.getElementById('buZaiList');
   const totalRow = document.getElementById('buZaiTotalRow');
   if(!list) return;
+
   list.innerHTML = buZaiRows.map((r,i) => `
-   <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="金額を入力" value="${r.price||''}"
-  oninput="this.value=onlyDigits(this.value); buZaiRows[${i}].price=Number(this.value)||0; calcBuZaiTotal()"
-  style="flex:1;font-family:'DM Mono',monospace;font-size:15px;text-align:right;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <input
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        placeholder="金額を入力"
+        value="${r.price || ''}"
+        oninput="this.value=onlyDigits(this.value); buZaiRows[${i}].price=Number(this.value)||0; calcBuZaiTotal()"
+        style="flex:1;font-family:'DM Mono',monospace;font-size:15px;text-align:right;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;"
+      >
       <button class="btn-remove-row" onclick="removeBuZaiRow(${r.id})">×</button>
-    </div>`).join('');
+    </div>
+  `).join('');
+
   if(totalRow) totalRow.style.display = buZaiRows.length ? 'flex' : 'none';
   calcBuZaiTotal();
 }
@@ -1942,32 +1952,32 @@ function renderBreakdown(){
           </div>
 
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <input
-  　　　　　　type="text"
-  　　　　　　inputmode="numeric"
-  　　　　　　pattern="[0-9]*"
-  　　　　　　placeholder="単価"
-  　　　　　　value="${r.price || ''}"
-  　　　　　　oninput="this.value=onlyDigits(this.value); updateBdPrice(${r.id},this.value)"
-  　　　　　　style="flex:2;min-width:0;font-family:'DM Mono',monospace;font-size:15px;text-align:right;"
-  　　　　　　title="単価"
-　　　　　　　　>
-            <span style="font-size:12px;color:var(--text3);flex-shrink:0;">×</span>
-            <input
-              type="number"
-              placeholder="1"
-              min="1"
-              value="${r.qty || 1}"
-              oninput="updateBdQty(${r.id},this.value)"
-              style="width:56px;font-size:14px;text-align:right;"
-              title="数量"
-            >
-            <span style="font-size:12px;color:var(--text3);flex-shrink:0;">=</span>
-            <span
-              id="bd-qty-total-${r.id}"
-              style="font-family:'DM Mono',monospace;font-size:14px;color:#333;font-weight:700;flex-shrink:0;"
-            >¥${basePrice.toLocaleString()}</span>
-          </div>
+  <input
+    type="text"
+    inputmode="numeric"
+    pattern="[0-9]*"
+    placeholder="単価"
+    value="${r.price || ''}"
+    oninput="this.value=onlyDigits(this.value); updateBdPrice(${r.id},this.value)"
+    style="flex:2;min-width:0;font-family:'DM Mono',monospace;font-size:15px;text-align:right;"
+    title="単価"
+  >
+  <span style="font-size:12px;color:var(--text3);flex-shrink:0;">×</span>
+  <input
+    type="number"
+    placeholder="1"
+    min="1"
+    value="${r.qty || 1}"
+    oninput="updateBdQty(${r.id},this.value)"
+    style="width:56px;font-size:14px;text-align:right;"
+    title="数量"
+  >
+  <span style="font-size:12px;color:var(--text3);flex-shrink:0;">=</span>
+  <span
+    id="bd-qty-total-${r.id}"
+    style="font-family:'DM Mono',monospace;font-size:14px;color:#333;font-weight:700;flex-shrink:0;"
+  >¥${basePrice.toLocaleString()}</span>
+</div>
 
           <div style="display:flex;justify-content:flex-end;margin-top:1px;">
             <button
