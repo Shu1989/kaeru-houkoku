@@ -922,18 +922,26 @@ function buildLineMessage(record, docLabel){
 
   return record.member || '';
 }
+  function isDistributedChildRecord(record){
+  return /\[分配\].+より/.test(String(record.memo || ''));
+}
 
 function copyLineMessage(record, docLabel){
+  if(isDistributedChildRecord(record)){
+    alert('分配先カードではLINEコピーできません');
+    return;
+  }
+
   try{
     console.log('copyLineMessage record =', record);
 
     const sourceMemberName =
-  getSourceMemberNameFromRecord(record) ||
-  record.member ||
-  record.ownerMember ||
-  '';
+      getSourceMemberNameFromRecord(record) ||
+      record.member ||
+      record.ownerMember ||
+      '';
 
-const memberCode = getCodeFromMemberName(sourceMemberName);
+    const memberCode = getCodeFromMemberName(sourceMemberName);
     const detailUrl = buildRecordDetailUrl(record.id, memberCode);
 
     const text = [
@@ -949,11 +957,9 @@ const memberCode = getCodeFromMemberName(sourceMemberName);
       detailUrl
     ].join('\n');
 
-    navigator.clipboard.writeText(text).then(()=>{
-      alert('LINE送信用メッセージをコピーしました');
-    }).catch(()=>{
-      alert('コピーに失敗しました');
-    });
+    navigator.clipboard.writeText(text)
+      .then(()=> alert('LINE送信用メッセージをコピーしました'))
+      .catch(()=> alert('コピーに失敗しました'));
   }catch(e){
     alert('URL作成エラー: ' + e.message);
   }
@@ -2822,7 +2828,7 @@ function renderHistoryList(records, isAdmin){
   if(r.mitsumori === '✅'){
     badges.push('<span style="background:#e3f0fb;color:#1565c0;border:1px solid #90caf9;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 見積書 未対応</span>');
   } else if(r.mitsumori === '済'){
-  if(isAdminView()){
+  if(isAdminView() && !isDistributedChildRecord(r)){
     badges.push(`
       <button
         onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '見積書')"
@@ -2837,7 +2843,7 @@ function renderHistoryList(records, isAdmin){
   if(r.nohinshi === '✅'){
     badges.push('<span style="background:#f3e8fc;color:#6a1b9a;border:1px solid #ce93d8;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📄 納品書 未対応</span>');
   } else if(r.nohinshi === '済'){
-  if(isAdminView()){
+  if(isAdminView() && !isDistributedChildRecord(r)){
     badges.push(`
       <button
         onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '納品書')"
@@ -2852,7 +2858,7 @@ function renderHistoryList(records, isAdmin){
   if(r.houkokusho === '✅'){
     badges.push('<span style="background:#fff8e1;color:#e65100;border:1px solid #ffcc80;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">📋 報告書 未対応</span>');
   } else if(r.houkokusho === '済'){
-  if(isAdminView()){
+  if(isAdminView() && !isDistributedChildRecord(r)){
     badges.push(`
       <button
         onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '報告書')"
