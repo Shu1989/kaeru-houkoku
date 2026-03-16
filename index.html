@@ -317,7 +317,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <input
   type="text"
   id="fJobId"
-  placeholder="例：815000 / K171856"
+  placeholder="例：815000"
   inputmode="tel"
   autocapitalize="characters"
   maxlength="20"
@@ -598,15 +598,8 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <!-- ここに追加 -->
 <div id="docFilterWrap" style="display:none;gap:8px;flex-wrap:wrap;margin-top:8px;">
   <button
-    id="docFilterAllBtn"
-    onclick="setDocFilter('all')"
-    style="padding:8px 14px;border-radius:20px;border:1.5px solid #2e7d32;background:#2e7d32;color:#fff;font-size:13px;font-weight:700;">
-    書類すべて
-  </button>
-
-  <button
     id="docFilterLineBtn"
-    onclick="setDocFilter('line')"
+    onclick="toggleDocFilterLine()"
     style="padding:8px 14px;border-radius:20px;border:1.5px solid #ccc;background:#fff;color:#555;font-size:13px;font-weight:700;">
     LINEコピー
   </button>
@@ -4223,8 +4216,22 @@ function setSearchStatus(s){
   applySearch();
 }
 
-  function setDocFilter(type){
-  currentDocFilter = type;
+function toggleDocFilterLine(){
+  if(currentUser !== 'admin') return;
+
+  currentDocFilter = (currentDocFilter === 'line') ? 'all' : 'line';
+
+  const lineBtn = document.getElementById('docFilterLineBtn');
+  if(lineBtn){
+    const active = currentDocFilter === 'line';
+    lineBtn.style.background = active ? '#2e7d32' : '#fff';
+    lineBtn.style.color = active ? '#fff' : '#555';
+    lineBtn.style.borderColor = active ? '#2e7d32' : '#ccc';
+    lineBtn.style.fontWeight = '700';
+  }
+
+  applySearch();
+}
 
   const allBtn = document.getElementById('docFilterAllBtn');
   const lineBtn = document.getElementById('docFilterLineBtn');
