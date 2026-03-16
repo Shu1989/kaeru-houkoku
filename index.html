@@ -596,7 +596,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
           <button id="searchOngoing" onclick="setSearchStatus('継続中')" style="flex:1;padding:8px;border-radius:20px;border:1.5px solid #ccc;background:white;color:#555;font-size:13px;cursor:pointer;">🔄 継続中</button>
         </div>
         <!-- ここに追加 -->
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+<div id="docFilterWrap" style="display:none;gap:8px;flex-wrap:wrap;margin-top:8px;">
   <button
     id="docFilterAllBtn"
     onclick="setDocFilter('all')"
@@ -1460,6 +1460,12 @@ let breakdownRows = [];
 let editingRecord = null;
 let editBreakdownRows = [];
 
+  function updateDocFilterVisibility(){
+  const wrap = document.getElementById('docFilterWrap');
+  if(!wrap) return;
+  wrap.style.display = (currentUser === 'admin') ? 'flex' : 'none';
+}
+
 // ===== URLパラメータ自動ログイン（GASからメンバー取得後に実行） =====
 async function fetchMembers(){
   try {
@@ -1526,6 +1532,7 @@ async function checkUrlLogin(){
   }
   const member = MEMBER_CODES_MAP[code];
   currentUser = member;
+  updateDocFilterVisibility();   // ←追加
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
   document.getElementById('mainHeader').style.display='flex';
