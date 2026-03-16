@@ -595,6 +595,22 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
           <button id="searchDone" onclick="setSearchStatus('完了')" style="flex:1;padding:8px;border-radius:20px;border:1.5px solid #ccc;background:white;color:#555;font-size:13px;cursor:pointer;">✅ 完了</button>
           <button id="searchOngoing" onclick="setSearchStatus('継続中')" style="flex:1;padding:8px;border-radius:20px;border:1.5px solid #ccc;background:white;color:#555;font-size:13px;cursor:pointer;">🔄 継続中</button>
         </div>
+        <!-- ここに追加 -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+  <button
+    id="docFilterAllBtn"
+    onclick="setDocFilter('all')"
+    style="padding:8px 14px;border-radius:20px;border:1.5px solid #2e7d32;background:#2e7d32;color:#fff;font-size:13px;font-weight:700;">
+    書類すべて
+  </button>
+
+  <button
+    id="docFilterLineBtn"
+    onclick="setDocFilter('line')"
+    style="padding:8px 14px;border-radius:20px;border:1.5px solid #ccc;background:#fff;color:#555;font-size:13px;font-weight:700;">
+    LINEコピー
+  </button>
+</div>
       </div>
     </div>
     <!-- 月選択と計上額サマリーは計上額タブに移動 -->
@@ -1439,6 +1455,7 @@ let lists = {
 
 let currentUser = null;
 let currentFilter = 'all';
+let currentDocFilter = 'all';  
 let breakdownRows = [];
 let editingRecord = null;
 let editBreakdownRows = [];
@@ -4199,10 +4216,45 @@ function setSearchStatus(s){
   applySearch();
 }
 
+  function setDocFilter(type){
+  currentDocFilter = type;
+
+  const allBtn = document.getElementById('docFilterAllBtn');
+  const lineBtn = document.getElementById('docFilterLineBtn');
+
+  [allBtn, lineBtn].forEach(btn => {
+    if (!btn) return;
+    btn.style.background = '#fff';
+    btn.style.color = '#555';
+    btn.style.borderColor = '#ccc';
+    btn.style.fontWeight = '700';
+  });
+
+  if (type === 'all' && allBtn) {
+    allBtn.style.background = '#2e7d32';
+    allBtn.style.color = '#fff';
+    allBtn.style.borderColor = '#2e7d32';
+  }
+
+  if (type === 'line' && lineBtn) {
+    lineBtn.style.background = '#2e7d32';
+    lineBtn.style.color = '#fff';
+    lineBtn.style.borderColor = '#2e7d32';
+  }
+
+  applySearch();
+}
+
+  function hasLineCopyTarget(r){
+  return String(r.mitsumori || '') === 'LINEコピー'
+      || String(r.nohinshi || '') === 'LINEコピー'
+      || String(r.houkokusho || '') === 'LINEコピー';
+}
+
 function applySearch(){
   const text = (document.getElementById('searchText')?.value||'').toLowerCase();
   const from = document.getElementById('searchDateFrom')?.value||'';
-  const to   = document.getElementById('searchDateTo')?.value||'';
+  const to = document.getElementById('searchDateTo')?.value||'';
   const isAdmin = currentUser==='admin';
 
   let filtered = allLoadedRecords.filter(r=>{
@@ -4210,14 +4262,21 @@ function applySearch(){
     const isOngoing = memo.startsWith('【継続中】');
     if(searchStatus==='完了' && isOngoing) return false;
     if(searchStatus==='継続中' && !isOngoing) return false;
+
     if(text){
       const hay = [r.client,r.work,r.place].join(' ').toLowerCase();
       if(!hay.includes(text)) return false;
     }
+
     if(from && String(r.date)<from) return false;
-    if(to   && String(r.date)>to)   return false;
+    if(to && String(r.date)>to) return false;
+
+    // ▼ 追加：管理者の書類フィルタ
+    if(currentDocFilter === 'line' && !hasLineCopyTarget(r)) return false;
+
     return true;
   });
+
   renderHistoryList(filtered, isAdmin);
 }
 
