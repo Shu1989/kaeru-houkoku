@@ -1455,7 +1455,7 @@ async function fetchMembers(){
       json.members.forEach(m => {
         MEMBER_CODES_MAP[m.code] = m.name;
         if(m.name !== 'admin') ALL_MEMBERS.push(m.name);
-        memberRates[m.name] = m.rate;
+        memberRates[m.name] = Number(m.rate || 0);
       });
       return true;
     }
@@ -2799,9 +2799,9 @@ function renderHistoryList(records, isAdmin){
         </div>
         ${r.buZaiTotal>0?`<div class="hi-memo" style="background:#f0f8ff;border-left:3px solid #4a90d9;"><div class="memo-label" style="color:#2a60a9;">部材合計</div><span style="font-family:'DM Mono',monospace;font-weight:700;color:#2a60a9;">¥${Number(r.buZaiTotal||0).toLocaleString()}</span></div>`:''}
         ${(()=>{
-          const mem = isAdmin ? (r.member||'') : currentUser;
-          const keijo = getKeijo({...r, member:mem});
-          const rate = memberRates[mem] ?? 100;
+          const mem = isAdmin ? (r.member || r.ownerMember || '') : currentUser;
+　　　　　 const keijo = getKeijo({ ...r, member: mem });
+          const rate = Number(r.rate ?? r.memberRate ?? memberRates[mem] ?? 0);
           return `<div class="hi-memo" style="background:#f3faf3;border-left:3px solid #43a047;">
             <div class="memo-label" style="color:#2e7d32;">計上額（税抜）${isAdmin?'　配分率'+rate+'%':''}</div>
             <span style="font-family:'DM Mono',monospace;font-weight:700;color:#2e7d32;font-size:17px;">¥${keijo.toLocaleString()}</span>
@@ -3223,7 +3223,8 @@ function extractDistBadge(memo){
 function openDetailModal(r, member){
   const bd = parseBdText(r.bdText||'');
   const keijo = getKeijo(r);
-  const rate = memberRates[member]??100;
+  const mem = member || r.member || r.ownerMember || '';
+　const rate = Number(r.rate ?? r.memberRate ?? memberRates[mem] ?? 0);
   const displaySubtotal = getDisplaySubtotal(r);
   const isOngoing = String(r.memo||'').startsWith('【継続中】');
   const {badge: distBadge, clean: memoNoDist} = extractDistBadge(r.memo||'');
