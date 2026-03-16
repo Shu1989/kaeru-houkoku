@@ -2775,7 +2775,7 @@ function renderHistoryList(records, isAdmin){
 
   list.innerHTML = noteHtml + records.map((r, idx) => {
   const bd = parseBdText(r.bdText || '');
-  const canEdit = !isAdmin && !/[分配][済]/.test(String(r.memo || ''));
+  const canEdit = !/【分配】[^済]/.test(String(r.memo || ''));
   const detailDomId = `d-${idx}-${String(r.id || 'noid')}`;
 
   return `
