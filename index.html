@@ -2661,15 +2661,17 @@ async function loadHistory(){
     if(isAdmin){
   const members = ['all', ...new Set(
     records
-      .map(r => r.member || r.ownerMember || '')
-      .filter(v => typeof v === 'string' && v.trim() !== '' && v !== 'undefined')
+      .map(r => (r.member || r.ownerMember || '').trim())
+      .filter(v => v !== '' && v !== 'undefined' && v !== 'admin')
   )];
 
   document.getElementById('filterBtns').innerHTML = members.map(m =>
     `<button class="filter-btn ${currentFilter===m?'active':''}" onclick="setFilter('${m}')">${m==='all'?'全員':m}</button>`
   ).join('');
 
-  if(currentFilter!=='all') records=records.filter(r=>r.member===currentFilter);
+  if(currentFilter !== 'all') {
+    records = records.filter(r => (r.member || r.ownerMember || '') === currentFilter);
+  }
 }
 
     allLoadedRecords = records;
