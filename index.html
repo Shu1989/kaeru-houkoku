@@ -4233,30 +4233,6 @@ function toggleDocFilterLine(){
   applySearch();
 }
 
-  const allBtn = document.getElementById('docFilterAllBtn');
-  const lineBtn = document.getElementById('docFilterLineBtn');
-
-  [allBtn, lineBtn].forEach(btn => {
-    if (!btn) return;
-    btn.style.background = '#fff';
-    btn.style.color = '#555';
-    btn.style.borderColor = '#ccc';
-    btn.style.fontWeight = '700';
-  });
-
-  if (type === 'all' && allBtn) {
-    allBtn.style.background = '#2e7d32';
-    allBtn.style.color = '#fff';
-    allBtn.style.borderColor = '#2e7d32';
-  }
-
-  if (type === 'line' && lineBtn) {
-    lineBtn.style.background = '#2e7d32';
-    lineBtn.style.color = '#fff';
-    lineBtn.style.borderColor = '#2e7d32';
-  }
-
-  applySearch();
 
 
   function hasLineCopyTarget(r){
