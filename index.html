@@ -910,17 +910,20 @@ function buildLineMessage(record, docLabel){
   const detailUrl = buildRecordDetailUrl(record.id, memberCode);
 
   return [
-    `${docLabel}を作成しました。`,
-    '',
-    '【案件情報】',
-    `顧客：${record.client || ''}`,
-    `場所：${shortPlaceForLine(record.place || '')}`,
-    `作業内容：${record.work || ''}`,
-    `作業ID：${record.jobId || 'なし'}`,
-    '',
-    '案件詳細はこちら👇',
-    detailUrl
-  ].join('\n');
+  `📄${docLabel}を作成しました。`,
+  '',
+  '【案件情報】',
+  `日付: ${String(record.date || '').slice(0,10)}`,
+  `顧客: ${record.client || ''}`,
+  `場所: ${shortPlaceForLine(record.place || '')}`,
+  `作業内容: ${record.work || ''}`,
+  `作業ID: ${record.jobId || 'なし'}`,
+  '',
+  `案件詳細はこちら👇`,
+  detailUrl,
+  '',
+  '※案件カードの表示には数秒かかる場合があります'
+].join('\n');
 }
 
   function getSourceMemberNameFromRecord(record){
