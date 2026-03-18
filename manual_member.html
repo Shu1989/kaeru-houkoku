@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かえる案件報告 メンバー操作説明書</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #2e7d32;
+    --green-light: #e8f5e9;
+    --green-mid: #43a047;
+    --orange: #e65100;
+    --orange-light: #fff3e0;
+    --blue: #1565c0;
+    --blue-light: #e3f2fd;
+    --red: #c62828;
+    --red-light: #fce4ec;
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --border: #e0dbd4;
+    --text: #2a2520;
+    --text2: #6b6460;
+    --text3: #aaa49e;
+    --radius: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ヘッダー */
+  .header {
+    background: var(--green);
+    color: white;
+    padding: 32px 24px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: rgba(255,255,255,.06);
+    border-radius: 50%;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: -20px;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,.04);
+    border-radius: 50%;
+  }
+  .header-emoji { font-size: 40px; margin-bottom: 8px; }
+  .header h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+  .header p { font-size: 13px; opacity: .8; }
+
+  /* タブナビ */
+  .tab-nav {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 8px;
+    border: none;
+    background: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all .2s;
+  }
+  .tab-btn.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  /* コンテンツ */
+  .tab-content { display: none; padding: 20px 16px 60px; max-width: 680px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* セクション */
+  .section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--green);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--green-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .num {
+    background: var(--green);
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ステップ */
+  .step {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+  }
+  .step-num {
+    background: var(--green-light);
+    color: var(--green);
+    font-weight: 900;
+    font-size: 13px;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { color: var(--text); font-weight: 700; }
+  .step-body p { color: var(--text2); font-size: 13px; margin-top: 3px; }
+
+  /* メモボックス */
+  .note {
+    background: var(--orange-light);
+    border-left: 4px solid var(--orange);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--orange);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .note-green {
+    background: var(--green-light);
+    border-left-color: var(--green);
+    color: var(--green);
+  }
+  .note-blue {
+    background: var(--blue-light);
+    border-left-color: var(--blue);
+    color: var(--blue);
+  }
+
+  /* バッジ */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 2px 3px 2px 0;
+  }
+  .badge-green { background: var(--green-light); color: var(--green); border: 1px solid #a5d6a7; }
+  .badge-orange { background: var(--orange-light); color: var(--orange); border: 1px solid #ffcc80; }
+  .badge-blue { background: var(--blue-light); color: var(--blue); border: 1px solid #90caf9; }
+  .badge-red { background: var(--red-light); color: var(--red); border: 1px solid #ef9a9a; }
+  .badge-purple { background: #f3e8fc; color: #6a1b9a; border: 1px solid #ce93d8; }
+
+  /* テーブル */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th { background: var(--green-light); color: var(--green); font-weight: 700; padding: 8px 12px; text-align: left; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  /* スクリーンUI模倣 */
+  .ui-mock {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .ui-mock .ui-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ui-mock .ui-row:last-child { border-bottom: none; }
+
+  /* 区切り */
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* リスト */
+  .list { padding-left: 18px; }
+  .list li { margin-bottom: 6px; font-size: 14px; }
+  .list li::marker { color: var(--green); }
+
+  /* ルールカード */
+  .rule-card {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .rule-card .rule-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rule-card p { font-size: 13px; color: var(--text2); }
+  .rule-ok { border-color: #a5d6a7; background: var(--green-light); }
+  .rule-ng { border-color: #ef9a9a; background: var(--red-light); }
+
+  /* フッター */
+  .footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-emoji">🐸</div>
+  <h1>かえる案件報告 操作説明書</h1>
+  <p>メンバー向けマニュアル</p>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('member')">👤 操作ガイド</button>
+  <button class="tab-btn" onclick="showTab('rules')">📋 ルール</button>
+</div>
+
+<!-- ========== メンバータブ ========== -->
+<div class="tab-content active" id="tab-member">
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span>ログイン方法</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>専用URLからアクセス</strong>
+        <p>管理者から共有された専用URLをブラウザで開いてください。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>スマホのホーム画面に追加</strong>
+        <p>Safariの場合は「共有 → ホーム画面に追加」、Chromeの場合は「メニュー → ホーム画面に追加」でショートカットを作成できます。次回からはアプリのように起動できます。</p>
+      </div>
+    </div>
+    <div class="note note-blue">💡 URLはかえる（管理者）から受け取ってください。</div>
+    <div class="note">⚠️ ID・パスワードはあえて組み込んでいません。手間を減らすためですが、その分この専用URLを他人に共有しないようにしてください。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span>案件を登録する</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>「案件入力」タブをタップ</strong>
+        <p>画面上部のタブから「📝 案件入力」を選びます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>日付を入力</strong>
+        <p>作業日を入力します（必須）。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>顧客名を選択</strong>
+        <p>プルダウンから選択。新しい顧客は「＋」ボタンで追加できます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>書類作成チェック（対象顧客のみ表示）</strong>
+        <p>テスコ・長栄・ティーテックなど対象顧客を選ぶと書類チェック欄が表示されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>場所・作業内容・内訳を入力</strong>
+        <p>場所は住所検索も使えます。内訳はグループ分けして入力できます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <strong>部材を入力（任意）</strong>
+        <p>自分が立て替えた部材がある場合は、内訳の下にある「部材」欄に品名と金額を入力してください。部材費は配分率に関係なく<strong>全額計上</strong>されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <strong>ステータスを選択して送信</strong>
+        <p>「完了」または「継続中」を選んで送信します。</p>
+      </div>
+    </div>
+    <div class="note">⚠️ 書類が必要な案件はチェックを入れてから送信してください。メールとLINEで管理者に通知が届きます。</div>
+
+    <div class="divider"></div>
+    <p style="font-size:13px;font-weight:700;margin-bottom:8px;">📋 書類チェック対象顧客</p>
+    <table>
+      <tr><th>顧客名</th><th>書類</th></tr>
+      <tr><td>テスコ</td><td><span class="badge badge-blue">見積書</span><span class="badge badge-purple">納品書</span></td></tr>
+      <tr><td>長栄</td><td><span class="badge badge-blue">見積書</span></td></tr>
+      <tr><td>ティーテック</td><td><span class="badge badge-blue">見積書</span><span class="badge badge-orange">請求書</span></td></tr>
+      <tr><td>東洋世田谷第一/第二/サポート</td><td><span class="badge badge-green">報告書</span></td></tr>
+    </table>
+    <div class="note note-blue">💬 書類は料金集計LINEにて送付します。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span>履歴を見る・編集する</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>「履歴」タブをタップ</strong>
+        <p>自分の登録した案件一覧が表示されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>カードをタップで詳細表示</strong>
+        <p>内訳・計上額・書類状況などが確認できます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>編集・削除ボタン</strong>
+        <p>詳細を開くと「✏️ 編集」「🗑️ 削除」が表示されます。分配済み案件は編集保存不可です。</p>
+      </div>
+    </div>
+    <div class="note note-blue">💡 検索・絞り込みで顧客名・作業内容・場所・日付範囲で絞れます。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span>分配について</div>
+
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">複数のメンバーで1件の案件を担当した場合に使います。</p>
+    <div class="note note-green">✅ 分配は代表者1人が登録してください。分配された側は、通知と履歴から確認できます。</div>
+    <div style="margin-bottom:4px;"></div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>分配の登録方法</strong>
+        <p>案件入力フォームで「複数メンバーで分配」をONにします。担当者と分配先・それぞれの金額を設定して送信します。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>登録後の表示</strong>
+        <p>分配した側のカードに <span class="badge badge-green">↗ 分配済 ○○へ</span> が、分配された側のカードに <span class="badge badge-blue">↙ 分配 ○○より</span> が表示されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>計上額の考え方</strong>
+        <p>それぞれのメンバーに割り当てられた金額に対して、各自の配分率で計上額が計算されます。元の小計全体ではなく<strong>自分の分担金額</strong>が計算の基準になります。</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <p style="font-size:13px;font-weight:700;margin-bottom:8px;">⚠️ 分配済み案件のルール</p>
+    <div class="rule-card rule-ng">
+      <div class="rule-title">❌ 編集保存不可</div>
+      <p>分配済み案件は編集画面は開けますが、保存できません。変更が必要な場合は削除して再登録してください。</p>
+    </div>
+    <div class="rule-card rule-ng">
+      <div class="rule-title">❌ 削除時の注意</div>
+      <p>分配した側（親）を削除すると、分配された側（子）も自動で削除されます。</p>
+    </div>
+    <div class="note note-blue">💡 分配された側（子）は自分では削除できません。分配した側（親）が削除する必要があります。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span>集計を見る</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>「集計」タブをタップ</strong>
+        <p>月ボタンで表示月を切り替えられます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>計上額・月次推移を確認</strong>
+        <p>配分率に基づいた計上額と、月別の推移が確認できます。集計に表示されている計上額（税込）がその月の振込額となります。</p>
+      </div>
+    </div>
+    <div class="note">💡 振込は翌々月になります。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span>設定について</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">「⚙️ 設定」タブでよく使う項目をカスタマイズできます。</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>顧客名の追加・削除</strong>
+        <p>よく使う顧客名を追加できます。案件入力のプルダウンに反映されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>作業内容の追加・削除</strong>
+        <p>案件入力でよく使う作業内容を追加できます。不要なものは削除できます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>内訳の追加・削除</strong>
+        <p>内訳に登録する項目名をあらかじめ追加しておくと、案件入力時に選択できます。また単価が固定のものは金額を設定しておけば案件入力時に金額入力の手間を減らせます。</p>
+      </div>
+    </div>
+    <div class="note note-blue">💡 設定はこのブラウザ・端末に保存されます。機種変更や別の端末では再設定が必要です。</div>
+  </div>
+
+</div>
+
+<!-- ========== 管理者タブ ========== -->
+<div class="tab-content" id="tab-admin" style="display:none!important;">
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span>管理者としてログイン</div>
+    <p style="font-size:14px;">担当者コード <strong style="font-family:'DM Mono',monospace;background:#f0ede8;padding:2px 8px;border-radius:6px;">0330</strong> でログインすると管理者モードになります。</p>
+    <div class="note note-green">✅ 管理者は全メンバーの履歴・集計が見られます。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span>履歴の管理（管理者）</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>全員の履歴が表示される</strong>
+        <p>各カードの左上にメンバー名のタグが表示されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>メンバーボタンで絞り込み</strong>
+        <p>上部のボタンで担当者別に絞り込めます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>LINEコピーフィルター</strong>
+        <p>「LINEコピー」ボタンで書類対応済み案件だけを絞り込めます。カード内の「✅ 見積書 済 → LINEコピー」ボタンで文面をコピーできます。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span>集計（管理者）</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">管理者の集計タブには以下のセクションが表示されます：</p>
+    <div class="ui-mock">
+      <div class="ui-row"><span>🟩 月次トータル</span><span style="font-size:12px;color:var(--text3);">売上・計上・会社分</span></div>
+      <div class="ui-row"><span>📋 書類未対応</span><span style="font-size:12px;color:var(--text3);">要対応の案件一覧</span></div>
+      <div class="ui-row"><span>🏢 顧客別小計</span><span style="font-size:12px;color:var(--text3);">顧客ごとの売上</span></div>
+      <div class="ui-row"><span>📈 月次推移</span><span style="font-size:12px;color:var(--text3);">全期間の月別推移</span></div>
+      <div class="ui-row"><span>👥 メンバー別内訳</span><span style="font-size:12px;color:var(--text3);">計上・会社・振込額</span></div>
+      <div class="ui-row"><span>📊 メンバー別月次一覧</span><span style="font-size:12px;color:var(--text3);">月×メンバーのマトリクス</span></div>
+    </div>
+    <div class="note note-blue">💡 振込額 = 計上額 × 1.1（税込・切り捨て）</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span>メンバー管理・配分率設定</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>「設定」タブを開く</strong>
+        <p>管理者のみメンバー管理・配分率設定が表示されます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>メンバーの追加・削除・編集</strong>
+        <p>名前とコードを設定して「💾 メンバーを保存」で保存します。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>配分率の設定</strong>
+        <p>各メンバーの配分率（%）を設定して「💾 配分率を保存」で保存します。</p>
+      </div>
+    </div>
+    <div class="note">⚠️ 配分率を変更すると、以降の登録案件に反映されます。過去の案件は変わりません。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span>担当変更機能</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>継続中の案件カードを開く</strong>
+        <p>「👤 担当変更」ボタンが表示されます（完了・分配済みは不可）。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>変更先メンバーを選択</strong>
+        <p>理由（任意）を入力して「保存」をタップします。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>変更完了</strong>
+        <p>メモに「【担当変更】A → B 日時」が自動記録されます。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span>分配機能</div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>案件入力時に「複数メンバーで分配」をON</strong>
+        <p>担当者と分配先・金額を設定して送信します。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>分配済み案件の扱い</strong>
+        <p>分配した側に「↗ 分配済 ○○へ」、分配された側に「✔ 分配 ○○より」が表示されます。</p>
+      </div>
+    </div>
+    <div class="note">⚠️ 分配済み案件は編集保存不可・担当変更不可です。変更が必要な場合は削除して再登録してください。削除すると分配された側も自動で削除されます。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">7</span>LINE・メール通知</div>
+    <p style="font-size:14px;margin-bottom:10px;">書類チェックありの案件を登録すると自動で通知が届きます。</p>
+    <table>
+      <tr><th>通知先</th><th>タイミング</th><th>内容</th></tr>
+      <tr><td>メール</td><td>書類依頼時</td><td>担当・顧客・書類種別・小計</td></tr>
+      <tr><td>LINE（かえる）</td><td>書類依頼時</td><td>日付・担当・顧客・場所・作業内容・書類・小計</td></tr>
+    </table>
+  </div>
+
+</div>
+
+<!-- ========== ルールタブ ========== -->
+<div class="tab-content" id="tab-rules">
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span>編集・削除のルール</div>
+    <div class="rule-card rule-ok">
+      <div class="rule-title">✅ 編集・削除できる</div>
+      <p>通常案件（完了・継続中）</p>
+    </div>
+    <div class="rule-card rule-ng">
+      <div class="rule-title">❌ 編集保存不可</div>
+      <p>分配済み案件（編集画面は開けるが保存できません）</p>
+    </div>
+    <div class="rule-card rule-ng">
+      <div class="rule-title">❌ 削除時の注意</div>
+      <p>分配済み案件を削除すると、分配された側も自動で削除されます。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span>担当変更のルール</div>
+    <div class="rule-card rule-ok">
+      <div class="rule-title">✅ 担当変更できる</div>
+      <p>継続中の通常案件（分配なし）</p>
+    </div>
+    <div class="rule-card rule-ng">
+      <div class="rule-title">❌ 担当変更できない</div>
+      <p>完了案件 / 分配済み案件 / 分配受取案件</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span>書類再作成のルール</div>
+    <ul class="list">
+      <li>編集画面の書類チェックは<strong>常にOFF</strong>で開きます</li>
+      <li>必要な書類だけチェックしてから保存してください</li>
+      <li>チェックがONの状態で保存するとメモに<strong>【訂正あり】</strong>が自動記録されます</li>
+      <li>重複して【訂正あり】が付くことはありません</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span>計上額の計算式</div>
+    <div class="ui-mock">
+      <div class="ui-row">
+        <span style="font-size:13px;">計上額</span>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--green);">（小計 - 部材合計）× 配分率% + 部材合計</span>
+      </div>
+      <div class="ui-row">
+        <span style="font-size:13px;">会社分</span>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--red);">小計 - 計上額</span>
+      </div>
+      <div class="ui-row">
+        <span style="font-size:13px;">振込額（税込）</span>
+        <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--blue);">計上額 × 1.1（切り捨て）</span>
+      </div>
+    </div>
+    <div class="note note-green">✅ 部材は全額計上（配分率の対象外）です。</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span>ステータスについて</div>
+    <table>
+      <tr><th>ステータス</th><th>意味</th><th>集計への影響</th></tr>
+      <tr><td><span class="badge badge-orange">🔄 継続中</span></td><td>作業が続いている案件</td><td>集計から除外</td></tr>
+      <tr><td><span class="badge badge-green">✅ 完了</span></td><td>作業が終わった案件</td><td>集計に含まれる</td></tr>
+    </table>
+    <div class="note note-blue">💡 継続中の案件は月次集計に含まれません。完了に変更すると集計に反映されます。</div>
+
+    <div class="divider"></div>
+    <p style="font-size:14px;font-weight:700;margin-bottom:10px;">📅 継続中→完了にする時の注意</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">集計はレコードの<strong>「日付」</strong>を見て月を判定します。継続中のまま日付が2月の案件を完了にすると<strong>2月に計上</strong>されます。</p>
+    <table>
+      <tr><th>やりたいこと</th><th>操作</th></tr>
+      <tr><td>2月の作業として計上したい</td><td>日付はそのまま → 完了に変更</td></tr>
+      <tr><td>3月の作業として計上したい</td><td>編集で日付を3月に変更してから完了に変更</td></tr>
+    </table>
+    <div class="note">⚠️ 意図した月に計上されるよう、完了にする前に日付を確認・修正してください。</div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px 20px;margin:0 16px 16px;box-shadow:var(--shadow);text-align:left;">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">⏳ 読み込みについて</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      本アプリのスペック上、データの読み込みや送信に数秒かかる場合があります。<br><br>
+      「送信中…」「読み込み中…」の表示中はそのままお待ちください。<br><br>
+      もし、それでも動作しない場合は一度アプリを終了して再度お試しください。
+    </div>
+  </div>
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px 20px;margin:0 16px 16px;box-shadow:var(--shadow);text-align:left;">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">🚀 今後のアップデートについて</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      後々に別アプリへのアップデートを予定しています。<br>
+      アップデート時は改めてご案内します。
+    </div>
+  </div>
+  <div style="background:var(--surface);border-radius:var(--radius);padding:16px 20px;margin:0 16px 16px;box-shadow:var(--shadow);text-align:left;">
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">📩 お問い合わせ</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      不明点・ご要望・障害などがあれば<br>
+      料金集計LINEにてご連絡ください。<br>
+      <span style="font-weight:700;color:var(--green);">担当：美澤</span>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text3);padding-bottom:16px;">かえる案件報告 操作説明書 © 2026</div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
