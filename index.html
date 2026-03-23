@@ -2991,11 +2991,11 @@ async function loadHistory(){
   const members = ['all', ...new Set(
     records
       .map(r => (r.member || r.ownerMember || '').trim())
-      .filter(v => v !== '' && v !== 'undefined' && v !== 'admin')
+      .filter(v => v !== '' && v !== 'undefined')
   )];
 
   document.getElementById('filterBtns').innerHTML = members.map(m =>
-    `<button class="filter-btn ${currentFilter===m?'active':''}" onclick="setFilter('${m}')">${m==='all'?'全員':m}</button>`
+    `<button class="filter-btn ${currentFilter===m?'active':''}" onclick="setFilter('${m}')">${m==='all'?'全員':m==='admin'?'かえる':m}</button>`
   ).join('');
 
   if(currentFilter !== 'all') {
@@ -3136,7 +3136,7 @@ async function renderHistoryList(records, isAdmin){
 
   return `
     <div class="history-item">
-      ${isAdmin ? `<div class="hi-member-tag">${r.member || r.ownerMember || ''}</div>` : ''}
+      ${isAdmin ? `<div class="hi-member-tag">${(r.member || r.ownerMember || '') === 'admin' ? 'かえる' : (r.member || r.ownerMember || '')}</div>` : ''}
       <div class="hi-top" onclick="toggleDetail('${detailDomId}')">
         <div>
           <div class="hi-title">${r.work || ''}</div>
