@@ -1041,9 +1041,9 @@ function openChangeMemberModal(idx){
   document.getElementById('changeMemberReason').value = '';
 
   const sel = document.getElementById('changeMemberSelect');
-  sel.innerHTML = ALL_MEMBERS.map(m =>
-    `<option value="${m}" ${m === r.member ? 'selected' : ''}>${m}</option>`
-  ).join('');
+  sel.innerHTML = [...ALL_MEMBERS, 'admin'].map(m =>
+  `<option value="${m}" ${m === r.member ? 'selected' : ''}>${m === 'admin' ? 'かえる' : m}</option>`
+).join('');
 
   document.getElementById('changeMemberModal').style.display = 'flex';
 }
