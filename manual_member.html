@@ -712,5 +712,655 @@ function showTab(name) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
+  <!-- ========== 料金表セクション（manual_member.htmlの</body>直前に追加） ========== -->
+
+<style>
+.ryokin-section {
+  max-width: 680px;
+  margin: 40px auto 0;
+  padding: 0 16px 60px;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+.ryokin-section h2 {
+  font-size: 18px;
+  font-weight: 900;
+  color: #1a1510;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ryokin-section .section-desc {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 16px;
+}
+.ryokin-accordion {
+  border: 1px solid #ddd8d0;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.ryokin-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1510;
+  user-select: none;
+}
+.ryokin-accordion-header:hover {
+  background: #f5f3ef;
+}
+.ryokin-accordion-header .arrow {
+  font-size: 12px;
+  color: #aaa;
+  transition: transform 0.2s;
+}
+.ryokin-accordion-header.open .arrow {
+  transform: rotate(90deg);
+}
+.ryokin-accordion-body {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px solid #f0ede8;
+}
+.ryokin-accordion-body.open {
+  display: block;
+}
+.ryokin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.ryokin-table th {
+  background: #2e7d32;
+  color: #fff;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 700;
+}
+.ryokin-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f0ede8;
+  color: #333;
+  vertical-align: top;
+}
+.ryokin-table tr:last-child td {
+  border-bottom: none;
+}
+.ryokin-table tr:nth-child(even) td {
+  background: #f9f9f7;
+}
+.ryokin-table .price {
+  font-family: 'DM Mono', monospace;
+  font-weight: 700;
+  color: #7b1fa2;
+  white-space: nowrap;
+}
+.ryokin-group-label {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+}
+.ryokin-note {
+  background: #fff8e1;
+  border-left: 3px solid #ffc107;
+  border-radius: 0 6px 6px 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #795548;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.ryokin-note ul {
+  margin: 4px 0 0 16px;
+  padding: 0;
+}
+.ryokin-note li {
+  margin-bottom: 3px;
+}
+.ryokin-zone-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.ryokin-zone-table th {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 700;
+}
+.ryokin-zone-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0ede8;
+  vertical-align: top;
+  font-size: 12px;
+  color: #555;
+}
+</style>
+
+<div class="ryokin-section">
+  <h2>💰 料金表</h2>
+  <p class="section-desc">顧客ごとの内訳相場の目安です。入力時の参考にしてください。</p>
+
+  <!-- 検索ボックス -->
+  <div style="position:relative;margin-bottom:16px;">
+    <input
+      type="text"
+      id="ryokinSearch"
+      placeholder="🔍 項目名で検索（例：トーラー、作業費）"
+      oninput="searchRyokin(this.value)"
+      style="width:100%;padding:12px 16px;border:1.5px solid #ddd8d0;border-radius:10px;font-size:15px;font-family:'Noto Sans JP',sans-serif;outline:none;box-sizing:border-box;"
+    >
+    <button
+      onclick="clearRyokinSearch()"
+      id="ryokinClearBtn"
+      style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:#aaa;cursor:pointer;line-height:1;"
+    >×</button>
+  </div>
+  <div id="ryokinSearchResult" style="display:none;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:8px 14px;font-size:13px;color:#2e7d32;margin-bottom:12px;"></div>
+
+  <!-- ===== 諸経費（区域別）===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      📍 諸経費（区域別）<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <table class="ryokin-zone-table">
+        <tr><th>区域</th><th>金額</th><th>対象エリア</th></tr>
+        <tr><td>A区域</td><td class="price">¥3,000〜</td><td>神奈川：横浜市・綾瀬市・大和市・藤沢市・逗子市・鎌倉市・海老名市・座間市・葉山町・逗子市・寒川町・相模原市南区・中央区</td></tr>
+        <tr><td>B区域</td><td class="price">¥4,000〜</td><td>ACDE区域以外の神奈川県（相模原緑区・平塚・秦野・伊勢原など）、東京23区・武蔵野市・三鷹市・狛江市・稲城市・多摩市・府中市・町田市</td></tr>
+        <tr><td>C区域</td><td class="price">¥5,000〜</td><td>神奈川：三浦市・小田原市・大井町・足柄郡・南足柄市・足柄上郡、東京：八王子市・日野市・昭島市・立川市・国立市・国分寺市・小金井市・小平市・東久留米市・西東京市</td></tr>
+        <tr><td>D区域</td><td class="price">¥6,000〜</td><td>神奈川：足柄下郡（湯河原・箱根・真鶴）、東京：あきる野市・日の出市・青梅市・羽村市・瑞穂町・武蔵村山市・東大和市・東村山市・清瀬市</td></tr>
+        <tr><td>E区域</td><td class="price">¥8,000〜</td><td>埼玉県・千葉県・東京（檜原村・奥多摩町）　※その他要相談</td></tr>
+      </table>
+      <div class="ryokin-note">
+        <strong>《都筑区新栄町20》から最速ルート換算</strong>
+        <ul>
+          <li>45〜75分：+¥1,000</li>
+          <li>以降15分毎：+¥1,000</li>
+          <li>移動時間2時間超：10分毎+¥1,000</li>
+          <li>高速代 往復3,000超：+¥1,000 / 以降1,000毎+¥1,000</li>
+          <li>駐車場料金は1,000以上から。端数切り捨て（1,800→1,000で計上）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== アネシス（A表）===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      🏢 アネシス（A表）<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <div class="ryokin-group-label">作業費</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>金額</th></tr>
+        <tr><td>作業費（60分以降30分毎+3,000）</td><td class="price">¥7,000〜</td></tr>
+        <tr><td>追加作業は+4,000（2作業7+4=11,000）</td><td class="price">—</td></tr>
+        <tr><td>調査作業費</td><td class="price">¥12,000〜</td></tr>
+        <tr><td>配管作業費</td><td class="price">¥15,000〜</td></tr>
+        <tr><td>水栓交換</td><td class="price">¥12,000〜（単水栓7）手洗器15,000〜</td></tr>
+        <tr><td>給湯器交換</td><td class="price">¥40,000〜</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">高所作業費（6尺脚立乗ってできるものにあらず）</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>金額</th></tr>
+        <tr><td>天井裏にて点検口から作業</td><td class="price">+¥3,000</td></tr>
+        <tr><td>天井裏登っての作業</td><td class="price">¥6,000</td></tr>
+        <tr><td>2m以上</td><td class="price">¥6,000</td></tr>
+        <tr><td>3m以上</td><td class="price">¥9,000</td></tr>
+        <tr><td>2階以上</td><td class="price">¥12,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">特殊作業費</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>金額</th></tr>
+        <tr><td>耐圧テスト（部屋毎）</td><td class="price">¥7,000</td></tr>
+        <tr><td>便器脱着</td><td class="price">¥10,000</td></tr>
+        <tr><td>タンク脱着</td><td class="price">¥5,000</td></tr>
+        <tr><td>洗濯パン脱着</td><td class="price">¥10,000</td></tr>
+        <tr><td>シンク脱着</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>ドラム式洗濯機で一人工の場合</td><td class="price">¥25,000</td></tr>
+        <tr><td>点検口設置（天井）</td><td class="price">¥20,000</td></tr>
+        <tr><td>点検口設置（床）</td><td class="price">¥30,000</td></tr>
+        <tr><td>モルタル補習費</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>はつり掘削作業費</td><td class="price">¥12,000〜</td></tr>
+        <tr><td>壁開口（補習含む）</td><td class="price">¥5,000〜</td></tr>
+        <tr><td>床開口（補習含む）</td><td class="price">¥10,000〜</td></tr>
+        <tr><td>養生作業費</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>安全対応費</td><td class="price">¥3,000〜</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">便器・ウォシュレット交換</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>便器交換</th><th>ウォシュレット</th></tr>
+        <tr><td>交換作業費</td><td class="price">¥25,000</td><td class="price">¥10,000</td></tr>
+        <tr><td>廃材処分費</td><td class="price">¥8,000</td><td class="price">¥2,000</td></tr>
+        <tr><td>諸経費</td><td class="price">¥5,000〜</td><td class="price">¥3,000〜</td></tr>
+        <tr><td>小計</td><td class="price">¥38,000</td><td class="price">¥15,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">時間外対応費（作業時間が被る場合は高い方で請求）</div>
+      <table class="ryokin-table">
+        <tr><th>時間帯</th><th>金額</th></tr>
+        <tr><td>18〜21時</td><td class="price">¥2,000</td></tr>
+        <tr><td>21〜24時</td><td class="price">¥5,000</td></tr>
+        <tr><td>24(0)〜7時</td><td class="price">¥7,000</td></tr>
+        <tr><td>7〜9時</td><td class="price">¥3,000</td></tr>
+        <tr><td>2030〜2130の作業</td><td class="price">¥5,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">祝日対応費</div>
+      <table class="ryokin-table">
+        <tr><td>12/31〜1/3での対応は出動毎</td><td class="price">¥5,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">機器使用費</div>
+      <table class="ryokin-table">
+        <tr><th>機器</th><th>金額</th></tr>
+        <tr><td>高圧</td><td class="price">¥15,000</td></tr>
+        <tr><td>トーラー</td><td class="price">¥10,000</td></tr>
+        <tr><td>スコープ</td><td class="price">¥20,000</td></tr>
+        <tr><td>バキューム</td><td class="price">¥6,000（清掃時等は0で作業費+3,000）</td></tr>
+        <tr><td>排水ポンプ</td><td class="price">¥10,000</td></tr>
+        <tr><td>バスポンプ</td><td class="price">¥4,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">部材料金</div>
+      <table class="ryokin-table">
+        <tr><td>6,000以下</td><td class="price">定価</td></tr>
+        <tr><td>6,001〜15,000以下</td><td class="price">基本入り値の20%off</td></tr>
+        <tr><td>15,001以上</td><td class="price">基本入り値の20%増</td></tr>
+      </table>
+
+      <div class="ryokin-note">
+        <ul>
+          <li>漏水証明書提出：¥3,000／通</li>
+          <li>鍵返却：現調のみ¥8,000〜、配送送却¥8,000〜、現調のみ¥12,000〜</li>
+          <li>廃材処分費：土嚢袋1あたり¥1,000 / 便器一式¥8,000 / ウォシュレット¥2,000</li>
+          <li>遠方・時間外等は適用。例 世田谷現場調査23-2315 → 8,000+諸経費1,000+時間外5,000=14,000</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== テスコ（T表）===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      🏢 テスコ（T表）<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <div class="ryokin-group-label">作業費（60分以降30分毎+3,000）</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>金額</th></tr>
+        <tr><td>作業費（軽作業）</td><td class="price">¥7,000〜（※7,000以外は▲1,000）</td></tr>
+        <tr><td>追加作業は+5,000</td><td class="price">—</td></tr>
+        <tr><td>作業費</td><td class="price">¥9,000〜</td></tr>
+        <tr><td>調査作業費</td><td class="price">¥12,000〜</td></tr>
+        <tr><td>配管作業費</td><td class="price">¥15,000〜</td></tr>
+        <tr><td>水栓交換</td><td class="price">¥12,000〜（単水栓7）手洗器15,000〜</td></tr>
+        <tr><td>給湯器交換</td><td class="price">¥40,000〜</td></tr>
+        <tr><td>45分以内に終わるような排水管改修</td><td class="price">作業費+¥3,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">高所作業費</div>
+      <table class="ryokin-table">
+        <tr><td>天井裏にて点検口から作業</td><td class="price">+¥3,000</td></tr>
+        <tr><td>天井裏登っての作業</td><td class="price">¥6,000</td></tr>
+        <tr><td>2m以上</td><td class="price">¥6,000</td></tr>
+        <tr><td>3m以上</td><td class="price">¥9,000</td></tr>
+        <tr><td>2階以上</td><td class="price">¥12,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">特殊作業費</div>
+      <table class="ryokin-table">
+        <tr><td>耐圧テスト（部屋毎）</td><td class="price">¥7,000</td></tr>
+        <tr><td>便器脱着</td><td class="price">¥10,000</td></tr>
+        <tr><td>タンク脱着</td><td class="price">¥5,000</td></tr>
+        <tr><td>洗濯パン脱着</td><td class="price">¥10,000</td></tr>
+        <tr><td>シンク脱着</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>ドラム式洗濯機で一人工の場合</td><td class="price">¥25,000</td></tr>
+        <tr><td>点検口設置（天井）</td><td class="price">¥20,000</td></tr>
+        <tr><td>点検口設置（床）</td><td class="price">¥30,000</td></tr>
+        <tr><td>モルタル補習費</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>はつり掘削作業費</td><td class="price">¥12,000〜</td></tr>
+        <tr><td>壁開口（補習含む）</td><td class="price">¥5,000〜</td></tr>
+        <tr><td>床開口（補習含む）</td><td class="price">¥10,000〜</td></tr>
+        <tr><td>養生作業費</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>安全対応費</td><td class="price">¥3,000〜</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">機器使用費</div>
+      <table class="ryokin-table">
+        <tr><td>高圧（作業費+3,000）</td><td class="price">¥10,000</td></tr>
+        <tr><td>トーラー</td><td class="price">¥10,000</td></tr>
+        <tr><td>スコープ</td><td class="price">¥20,000</td></tr>
+        <tr><td>バキューム（清掃時等は0で作業費+3,000）</td><td class="price">¥6,000</td></tr>
+        <tr><td>排水ポンプ</td><td class="price">¥10,000</td></tr>
+        <tr><td>バスポンプ</td><td class="price">¥4,000</td></tr>
+      </table>
+
+      <div class="ryokin-note">
+        ※以下項目はA表参照：便器・ウォシュレット交換（値引きあり）、漏水証明書提出、時間外対応費、祝日対応費、廃材処分費、鍵返却、部材料金
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 東洋グループ ===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      🏢 東洋グループ<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <div class="ryokin-group-label">作業費（60分以降30分毎+3,000）</div>
+      <table class="ryokin-table">
+        <tr><td>作業費</td><td class="price">¥9,000〜（追加+5,000）</td></tr>
+        <tr><td>●ついてるものは時間外対応時+6,000</td><td class="price">—</td></tr>
+        <tr><td>詰まり抜き●作業費</td><td class="price">¥18,000（すぐ終わるものは¥12,000）</td></tr>
+        <tr><td>調査作業費●</td><td class="price">¥18,000〜</td></tr>
+        <tr><td>配管作業費●</td><td class="price">¥18,000〜</td></tr>
+        <tr><td>水栓交換</td><td class="price">¥15,000〜　手洗器¥20,000〜</td></tr>
+        <tr><td>給湯器交換</td><td class="price">¥40,000〜</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">特殊作業費</div>
+      <table class="ryokin-table">
+        <tr><td>耐圧テスト（部屋毎）</td><td class="price">¥7,000</td></tr>
+        <tr><td>便器脱着</td><td class="price">¥10,000</td></tr>
+        <tr><td>タンク脱着</td><td class="price">¥5,000</td></tr>
+        <tr><td>洗濯パン脱着</td><td class="price">¥10,000</td></tr>
+        <tr><td>シンク脱着</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>ドラム式洗濯機で一人工の場合</td><td class="price">¥25,000</td></tr>
+        <tr><td>点検口設置（天井）</td><td class="price">¥20,000</td></tr>
+        <tr><td>点検口設置（床）</td><td class="price">¥30,000</td></tr>
+        <tr><td>モルタル補習費</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>はつり掘削作業費</td><td class="price">¥12,000〜</td></tr>
+        <tr><td>壁開口（補習含む）</td><td class="price">¥5,000〜</td></tr>
+        <tr><td>養生作業費</td><td class="price">¥6,000〜</td></tr>
+        <tr><td>安全対応費</td><td class="price">¥3,000〜</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">便器・ウォシュレット交換</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>便器交換</th><th>ウォシュレット</th></tr>
+        <tr><td>交換作業費</td><td class="price">¥30,000</td><td class="price">¥12,000</td></tr>
+        <tr><td>諸経費</td><td class="price">¥8,000〜</td><td class="price">¥3,000〜</td></tr>
+        <tr><td>小計</td><td class="price">¥38,000</td><td class="price">¥15,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">高所作業費</div>
+      <table class="ryokin-table">
+        <tr><td>天井裏にて点検口から作業</td><td class="price">+¥3,000</td></tr>
+        <tr><td>天井裏登っての作業</td><td class="price">¥6,000</td></tr>
+        <tr><td>2m以上</td><td class="price">¥6,000</td></tr>
+        <tr><td>3m以上</td><td class="price">¥9,000</td></tr>
+        <tr><td>2階以上</td><td class="price">¥12,000</td></tr>
+      </table>
+
+      <div class="ryokin-note">
+        <ul>
+          <li>廃材処分費：東洋グループのゴミ捨て場利用のため存在しません。別のところで料金入れてください。</li>
+          <li>鍵返却：現調のみ</li>
+          <li>郵送返却：レターパック赤¥3,000</li>
+          <li>配送返却：¥8,000〜</li>
+          <li>現調のみ：¥12,000〜</li>
+          <li>※以下項目はA表参照：時間外対応費・祝日対応費・機器使用費・部材料金</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Qナビ系（水道）===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      🏢 Qナビ系（水道）<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>出張費</td><td>—</td><td class="price">¥6,000</td></tr>
+        <tr><td>現場調査費</td><td>—</td><td class="price">¥8,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">▼詰まり抜き作業</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>ローポンプ作業</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>トーラー作業</td><td class="price">¥18,000</td><td class="price">¥27,000</td></tr>
+        <tr><td>高圧洗浄作業</td><td class="price">¥27,000</td><td class="price">¥41,000</td></tr>
+        <tr><td>トーラー・高圧洗浄作業（セット）</td><td class="price">¥31,000</td><td class="price">¥48,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">▼水栓交換作業</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>パッキン交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>スパウト交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>スピンドル交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>カートリッジ交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>フレキ管交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>単水栓交換</td><td class="price">¥10,000</td><td class="price">¥17,000</td></tr>
+        <tr><td>混合水栓交換</td><td class="price">¥16,000</td><td class="price">¥27,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">▼トイレ修繕作業</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>レバーハンドル交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>ボールタップ交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>フロートバルブ交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>排水ホース交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>排水トラップ交換</td><td class="price">¥9,000</td><td class="price">¥14,000</td></tr>
+        <tr><td>排水栓交換</td><td class="price">¥10,000</td><td class="price">¥17,000</td></tr>
+        <tr><td>便器脱着（大・小）</td><td class="price">¥11,000</td><td class="price">¥18,000</td></tr>
+        <tr><td>カメラ調査</td><td>—</td><td class="price">現場状況により</td></tr>
+        <tr><td>薬剤</td><td>—</td><td class="price">使用量により</td></tr>
+      </table>
+
+      <div class="ryokin-note">
+        <ul>
+          <li>部材費：必要に応じて仕入価格でのご提供をお願いいたします</li>
+          <li>諸経費：高速代（片道分）、駐車場料金（ガソリン代は除く）</li>
+          <li>複数作業が発生する場合、2つ目以降の作業料金が半額となります</li>
+          <li>Qナビアプリの作業報酬金額と店舗請求金額を誤ってQナビ利用者（店舗等）に伝えないでください</li>
+          <li>遠方の場合で、諸経費が1万円以上かかるなど高額になる場合、お客様より価格について相談・交渉が入る可能性があります</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Qナビ系（エアコン）===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      🏢 Qナビ系（エアコン）<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>出張費</td><td>—</td><td class="price">¥6,000</td></tr>
+        <tr><td>現場調査費</td><td>—</td><td class="price">¥15,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">▼室内機作業</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>ドレン詰まり抜き</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>ドレンポンプ交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>ドレンホース交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>フロートスイッチ交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>温度センサー交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>リモコン交換</td><td class="price">¥13,000</td><td class="price">¥20,000</td></tr>
+        <tr><td>ファン交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>基板交換</td><td class="price">¥16,000</td><td class="price">¥24,000</td></tr>
+        <tr><td>モーター交換</td><td class="price">¥17,000</td><td class="price">¥24,000</td></tr>
+        <tr><td>サーミスタ交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">▼室外機作業</div>
+      <table class="ryokin-table">
+        <tr><th>項目</th><th>改定価格</th><th>店舗請求金額</th></tr>
+        <tr><td>ファン交換</td><td class="price">¥11,000</td><td class="price">¥15,000</td></tr>
+        <tr><td>基板交換</td><td class="price">¥22,000</td><td class="price">¥30,000</td></tr>
+        <tr><td>モーター交換</td><td class="price">¥22,000</td><td class="price">¥30,000</td></tr>
+        <tr><td>圧縮機交換</td><td class="price">¥78,000</td><td class="price">¥100,000</td></tr>
+        <tr><td>熱交換器交換</td><td class="price">¥78,000</td><td class="price">¥100,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">その他</div>
+      <table class="ryokin-table">
+        <tr><td>室内機分解洗浄（1台）</td><td class="price">¥13,000</td><td class="price">¥17,000</td></tr>
+        <tr><td>冷媒ガス充填作業</td><td colspan="2" class="price">現場状況により</td></tr>
+        <tr><td>試運転調整費</td><td colspan="2" class="price">現場状況により</td></tr>
+      </table>
+
+      <div class="ryokin-note">
+        <ul>
+          <li>部材費：必要に応じて仕入価格でのご提供をお願いいたします</li>
+          <li>諸経費：高速代（片道分）、駐車場料金（ガソリン代は除く）</li>
+          <li>複数作業が発生する場合、2つ目以降の作業料金が半額となります</li>
+          <li>遠方の場合で、諸経費が2万円以上かかるなど高額になる場合、お客様より価格について相談・交渉が入る可能性があります</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ラックランド・アップメンテ・ナオキ・加瀬グループ・丹青社・工藤工務店・GoEN ===== -->
+  <div class="ryokin-accordion">
+    <div class="ryokin-accordion-header" onclick="toggleRyokin(this)">
+      🏢 ラックランド・アップメンテ・ナオキ・加瀬G・丹青社・工藤工務店・GoEN<span class="arrow">▶</span>
+    </div>
+    <div class="ryokin-accordion-body">
+      <div class="ryokin-group-label">作業費（60分以降30分毎+3,000）</div>
+      <table class="ryokin-table">
+        <tr><td>作業費</td><td class="price">¥9,000〜（追加作業は+5,000）</td></tr>
+        <tr><td>調査作業費</td><td class="price">¥15,000〜</td></tr>
+        <tr><td>配管作業費</td><td class="price">¥15,000〜</td></tr>
+        <tr><td>水栓交換</td><td class="price">¥12,000〜（単水栓9）</td></tr>
+        <tr><td>手洗器</td><td class="price">¥15,000〜</td></tr>
+        <tr><td>給湯器交換</td><td class="price">¥40,000〜</td></tr>
+        <tr><td>45分以内に終わるような排水管改修</td><td class="price">作業費+¥3,000</td></tr>
+      </table>
+
+      <div class="ryokin-group-label">高所作業費</div>
+      <table class="ryokin-table">
+        <tr><td>天井裏にて点検口から作業</td><td class="price">+¥3,000</td></tr>
+        <tr><td>天井裏登っての作業</td><td class="price">¥6,000</td></tr>
+        <tr><td>2m以上</td><td class="price">¥6,000</td></tr>
+        <tr><td>3m以上</td><td class="price">¥9,000</td></tr>
+        <tr><td>2階以上</td><td class="price">¥12,000</td></tr>
+      </table>
+
+      <div class="ryokin-note">
+        ※以下項目はA表参照：特殊作業費・便器・ウォシュレット交換・時間外対応費・祝日対応費・廃材処分費・機器使用費・漏水証明書提出・鍵返却・部材料金
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleRyokin(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function searchRyokin(keyword) {
+  const q = keyword.trim().toLowerCase();
+  const clearBtn = document.getElementById('ryokinClearBtn');
+  const resultMsg = document.getElementById('ryokinSearchResult');
+
+  clearBtn.style.display = q ? 'block' : 'none';
+
+  const accordions = document.querySelectorAll('.ryokin-accordion');
+  let totalHits = 0;
+
+  accordions.forEach(acc => {
+    const header = acc.querySelector('.ryokin-accordion-header');
+    const body = acc.querySelector('.ryokin-accordion-body');
+    const rows = body.querySelectorAll('tr');
+    let accHits = 0;
+
+    rows.forEach(row => {
+      if (!q) { row.style.display = ''; return; }
+      const text = row.textContent.toLowerCase();
+      const match = text.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match && row.querySelectorAll('td').length > 0) accHits++;
+    });
+
+    const groupLabels = body.querySelectorAll('.ryokin-group-label');
+    groupLabels.forEach(label => {
+      if (!q) { label.style.display = ''; return; }
+      let next = label.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains('ryokin-group-label')) {
+        if (next.tagName === 'TABLE') {
+          const visibleRows = [...next.querySelectorAll('tr')].filter(r =>
+            r.style.display !== 'none' && r.querySelectorAll('td').length > 0
+          );
+          if (visibleRows.length > 0) hasVisible = true;
+        }
+        next = next.nextElementSibling;
+      }
+      label.style.display = hasVisible ? '' : 'none';
+    });
+
+    if (!q) {
+      body.classList.remove('open');
+      header.classList.remove('open');
+      acc.style.display = '';
+    } else if (accHits > 0) {
+      body.classList.add('open');
+      header.classList.add('open');
+      acc.style.display = '';
+      totalHits += accHits;
+    } else {
+      acc.style.display = 'none';
+    }
+  });
+
+  if (!q) {
+    resultMsg.style.display = 'none';
+  } else {
+    resultMsg.style.display = 'block';
+    resultMsg.textContent = totalHits > 0
+      ? `「${keyword}」の検索結果：${totalHits}件`
+      : `「${keyword}」に一致する項目はありません`;
+    if (totalHits === 0) {
+      resultMsg.style.background = '#fef2f2';
+      resultMsg.style.borderColor = '#fca5a5';
+      resultMsg.style.color = '#dc2626';
+    } else {
+      resultMsg.style.background = '#e8f5e9';
+      resultMsg.style.borderColor = '#a5d6a7';
+      resultMsg.style.color = '#2e7d32';
+    }
+  }
+}
+
+function clearRyokinSearch() {
+  const input = document.getElementById('ryokinSearch');
+  input.value = '';
+  searchRyokin('');
+  input.focus();
+}
+</script>
 </body>
 </html>
