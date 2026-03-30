@@ -442,7 +442,9 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 
     <div class="card">
   <div class="card-title"><span></span>内訳</div>
-
+　<div style="font-size:11px;color:#e65100;background:#fff3e0;border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+  ⚠️ 項目名に「%」は使用しないでください。割引は各内訳右下の「割引」をタッチして数値で入力してください。
+　</div>
   <!-- グループ一覧 -->
   <div class="breakdown-list" id="breakdownList"></div>
 
@@ -813,6 +815,9 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     </div>
     <div class="form-group">
       <label class="fl">内訳</label>
+      <div style="font-size:11px;color:#e65100;background:#fff3e0;border-radius:6px;padding:6px 10px;margin-bottom:8px;">
+  　　⚠️ 項目名に「%」は使用しないでください。割引は各内訳右下の「割引」をタッチして数値で入力してください。
+　　　</div>
       <!-- グループ一覧 -->
       <div class="breakdown-list" id="eBreakdownList"></div>
       <!-- グループ追加 -->
@@ -2817,10 +2822,10 @@ console.log('受取側subRecord', subRecord);
   }
 
   const names = Object.keys(dist).map(m=>m==='admin'?'かえる':m).join('・');
-  showStatus('statusMsg','success',`✅ 送信完了！${names} に分配記録しました`);
+  showStatus('statusMsg','success',`✅ 送信完了！${names} に分配記録しました。履歴タブで登録を確認してください。`);
   showSuccessPopup(names+' に分配記録しました');
 } else {
-  showStatus('statusMsg','success','✅ 送信完了！');
+  showStatus('statusMsg','success','✅ 送信完了！履歴タブで登録を確認してください。');
   showSuccessPopup('');
 }
       // 使った項目をリスト先頭に移動
@@ -4748,7 +4753,7 @@ function renderDash(){
   const pendingDocs = dashAllRecords.filter(r=>{
   const memo = String(r.memo||'');
   if(/【分配】[^済]/.test(memo)) return false;  // 受取側は除外
-  return r.mitsumori==='✅' || r.nohinshi==='✅' || r.houkokusho==='✅';
+  return r.mitsumori==='✅' || r.nohinshi==='✅' || r.houkokusho==='✅' || r.seikyusho==='✅';
 });
   console.log('書類未対応件数:', pendingDocs.length);
   const pendingDocsCard = pendingDocs.length ? `
@@ -4999,8 +5004,6 @@ function renderEditBuZai(){
   if(!list) return;
   list.innerHTML = editBuZaiRows.map((r,i)=>`
     <div style="display:flex;gap:6px;align-items:center;">
-      <input type="text" placeholder="部材名（任意）" value="${r.name||''}" oninput="editBuZaiRows[${i}].name=this.value"
-        style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;">
       <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="金額" value="${r.price||''}"
   oninput="this.value=onlyDigits(this.value); editBuZaiRows[${i}].price=Number(this.value)||0; calcEditBuZaiTotal()"
         style="width:100px;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:'DM Mono',monospace;text-align:right;">
