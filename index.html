@@ -3258,6 +3258,16 @@ async function renderHistoryList(records, isAdmin){
   }
 }
 
+          if(r.seikyusho === '✅'){
+  badges.push('<span style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">🧾 請求書 未対応</span>');
+} else if(r.seikyusho === '済'){
+  if(isAdminView() && !isDistributedChildRecord(r)){
+    badges.push(`<button onclick="event.stopPropagation(); copyLineMessage(currentHistoryRecords[${idx}], '請求書')" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">✅ 請求書 済 → LINEコピー</button>`);
+  } else {
+    badges.push(`<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">✅ 請求書 済</span>`);
+  }
+}
+
   return badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${badges.join('')}</div>` : '';
 })()}
         ${canEdit?`
@@ -4179,7 +4189,7 @@ function showSuccessPopup(subText){
 }
 // ===== 書類対応済みに変更（管理者用） =====
 async function markDocDone(recordId, docType){
-  if(!confirm('「'+{mitsumori:'見積書',nohinshi:'納品書',houkokusho:'報告書'}[docType]+'」を対応済みにしますか？')) return;
+  if(!confirm('「'+{mitsumori:'見積書',nohinshi:'納品書',houkokusho:'報告書',seikyusho:'請求書'}[docType]+'」を対応済みにしますか？')) return;
   try{
     console.log('markDocDone id=', recordId, 'type=', typeof recordId);
     const payload = {action:'updateDoc', id:recordId, docType:docType};
@@ -4744,6 +4754,7 @@ function renderDash(){
   }).join('');
 
   const ongoingCount = records.filter(r=>String(r.memo||'').startsWith('【継続中】')).length;
+  const doneCount = doneRecs.filter(r=>!/【分配】[^済]/.test(String(r.memo||''))).length;
 
   // ③-b 書類未対応（全期間・完了のみ）
   // デバッグ：書類フラグの値を確認
@@ -4807,7 +4818,6 @@ function renderDash(){
       </div>
       <div style="text-align:right;">
         <div style="font-family:'DM Mono',monospace;font-weight:700;">¥${mSub.toLocaleString()}</div>
-        <div style="font-size:12px;color:#2e7d32;">計上 ¥${mKeijo.toLocaleString()}</div>
       </div>
     </div>`;
   }).join('') : '<div style="color:#aaa;font-size:13px;">データなし</div>';
@@ -4861,7 +4871,7 @@ function renderDash(){
   document.getElementById('dashContent').innerHTML = `
     <!-- トータル -->
     <div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;">
-      <div style="font-size:13px;font-weight:700;opacity:.8;margin-bottom:10px;">📊 ${dashMonth.replace('-','年')}月 トータル（完了案件 ${doneRecs.length}件${ongoingCount?'・継続中'+ongoingCount+'件':''}）</div>
+      <div style="font-size:13px;font-weight:700;opacity:.8;margin-bottom:10px;">📊 ${dashMonth.replace('-','年')}月 トータル（完了案件 ${doneCount}件${ongoingCount?'・継続中'+ongoingCount+'件':''}）</div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
         <span style="font-size:13px;opacity:.8;">売上小計（税抜）</span>
         <span style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;">¥${totalSubtotal.toLocaleString()}</span>
