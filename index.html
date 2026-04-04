@@ -311,6 +311,14 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#795548;line-height:1.8;">
       📝 複数メンバーで担当した案件は、代表者が下部の「複数メンバー分配」を利用して記録してください。
     </div>
+    <!-- 継続中案件カード -->
+<div id="ongoingCard" style="display:none;background:#fff8e1;border:1.5px solid #ffcc80;border-radius:10px;margin-bottom:12px;overflow:hidden;">
+  <div onclick="toggleOngoingCard()" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;">
+    <span style="font-size:13px;font-weight:700;color:#e65100;">🔄 継続中の案件 <span id="ongoingCardCount">0</span>件</span>
+    <span id="ongoingArrow" style="font-size:13px;color:#e65100;transition:transform .2s;">▶</span>
+  </div>
+  <div id="ongoingList" style="display:none;flex-direction:column;gap:8px;padding:0 10px 10px;"></div>
+</div>
     <div class="card">
       <div class="card-title"><span></span>基本情報</div>
       <div class="form-group">
@@ -543,6 +551,12 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <input type="checkbox" id="multiMemberCheck" onchange="toggleMultiMember()" style="width:20px;height:20px;accent-color:#2e7d32;">
         <span style="font-size:15px;font-weight:700;">複数メンバーで分配する</span>
       </label>
+      <div id="distRuleNote" style="display:none;background:#fff3e0;border-left:3px solid #e65100;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#e65100;line-height:1.8;">
+  📋 分配登録のルール<br>
+  ・分配は「完了」で登録してください<br>
+  ・分配済み案件は編集不可のため、修正は削除→再登録<br>
+  ・継続中案件は単独で登録し、完了時に編集から分配してください
+</div>
       <div id="multiMemberArea" style="display:none;">
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <select id="multiMemberSelect" style="flex:1;padding:9px;border:1.5px solid #ccc;border-radius:8px;font-size:14px;">
@@ -740,7 +754,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       <input
   type="text"
   id="eJobId"
-  placeholder="例：815000 / K171856"
+  placeholder="例：815000"
   inputmode="tel"
   autocapitalize="characters"
   maxlength="20"
@@ -1161,6 +1175,21 @@ let loadStart = Date.now();
 function toggleMultiMember(){
   const on = document.getElementById('multiMemberCheck').checked;
   document.getElementById('multiMemberArea').style.display = on ? 'block' : 'none';
+  document.getElementById('distRuleNote').style.display = on ? 'block' : 'none';
+
+  // 分配ONのときはステータスを完了に強制
+  const statusOngoing = document.getElementById('statusOngoing');
+  if(on){
+    document.getElementById('statusDone').checked = true;
+    statusOngoing.disabled = true;
+    statusOngoing.closest('label').style.opacity = '0.4';
+    statusOngoing.closest('label').style.cursor = 'not-allowed';
+    toggleStatusWarning('完了');
+  } else {
+    statusOngoing.disabled = false;
+    statusOngoing.closest('label').style.opacity = '1';
+    statusOngoing.closest('label').style.cursor = 'pointer';
+  }
   if(on){
     multiRows = [];
     // 自分を最初に追加
@@ -1737,6 +1766,7 @@ renderBreakdown();
 renderWorkCandidateList('');
 checkReceivedDistributionPopup();
 openRecordFromUrl();
+loadOngoingRecords();
 }
 
 // ===== セレクト =====
@@ -4323,6 +4353,7 @@ async function saveEdit(){
       }
       closeEditModal();
       loadHistory();
+      loadOngoingRecords();
     } else {
       showStatus('editStatusMsg','error','⚠️ '+(json.message||'エラー'));
     }
@@ -5216,7 +5247,67 @@ function extractSubDatesFromMemo(memo){
 function stripSubDateFromMemo(memo){
   return String(memo||'').replace(/【追加日付:[^\]]*】/, '').trim();
 }
+// ===== 継続中案件カード（入力フォーム） =====
+let ongoingRecords = [];
 
+async function loadOngoingRecords(){
+  if(!currentUser || currentUser === 'admin') return;
+  try{
+    const res = await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
+    const json = await res.json();
+    ongoingRecords = (json.records||[])
+      .filter(r => String(r.memo||'').startsWith('【継続中】'))
+      .map(r => ({...r, ownerMember: currentUser}));
+    renderOngoingCard();
+  }catch(e){ console.warn('継続中取得失敗:', e); }
+}
+
+function renderOngoingCard(){
+  const card = document.getElementById('ongoingCard');
+  const countEl = document.getElementById('ongoingCardCount');
+  const list = document.getElementById('ongoingList');
+  if(!card||!list) return;
+
+  if(!ongoingRecords.length){ card.style.display='none'; return; }
+
+  card.style.display = 'block';
+  if(countEl) countEl.textContent = ongoingRecords.length;
+
+  list.innerHTML = ongoingRecords
+    .sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')))
+    .map((r, idx) => `
+      <div style="background:#fff;border:1px solid #ffe082;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:14px;font-weight:700;color:#1a1510;">${r.client||''}</div>
+        <div style="font-size:13px;color:#555;margin-top:2px;">${r.work||''}</div>
+        ${r.place ? `<div style="font-size:12px;color:#888;margin-top:2px;">📍 ${fmtPlace(r.place)}</div>` : ''}
+        ${r.jobId ? `<div style="font-size:12px;color:#1565c0;margin-top:2px;">🔖 ${r.jobId}</div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <span style="font-size:12px;color:#aaa;">${fmtDate(r.date)}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#7b1fa2;">¥${Number(r.subtotal||0).toLocaleString()}</span>
+        </div>
+        <button
+          onclick="openOngoingEdit(${idx})"
+          style="width:100%;margin-top:8px;padding:8px;background:#e65100;color:white;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
+          ✏️ 編集
+        </button>
+      </div>`
+    ).join('');
+}
+
+function toggleOngoingCard(){
+  const list = document.getElementById('ongoingList');
+  const arrow = document.getElementById('ongoingArrow');
+  if(!list) return;
+  const isOpen = list.style.display === 'flex';
+  list.style.display = isOpen ? 'none' : 'flex';
+  if(arrow) arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+function openOngoingEdit(idx){
+  const r = ongoingRecords[idx];
+  if(!r) return;
+  openEditModal(r);
+}
 </script>
 
 <!-- 担当変更モーダル -->
