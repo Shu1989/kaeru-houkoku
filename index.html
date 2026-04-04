@@ -2862,6 +2862,7 @@ console.log('受取側subRecord', subRecord);
       const usedBdNames = breakdownRows.filter(r=>r.type!=='group').map(r=>r.name).filter(Boolean);
       bumpUsedItems(client, work, usedBdNames);
       showDocGenArea(record);
+      loadOngoingRecords();
       resetForm();
     } else {
       showStatus('statusMsg','error','⚠️ エラー：'+(json.message||'不明'));
