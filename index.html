@@ -317,6 +317,9 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     <span style="font-size:13px;font-weight:700;color:#e65100;">🔄 継続中の案件 <span id="ongoingCardCount">0</span>件</span>
     <span id="ongoingArrow" style="font-size:13px;color:#e65100;transition:transform .2s;">▶</span>
   </div>
+  <div style="font-size:11px;color:#e65100;padding:0 14px 8px;">
+  削除する場合は履歴タブからお願いします。
+</div>
   <div id="ongoingList" style="display:none;flex-direction:column;gap:8px;padding:0 10px 10px;"></div>
 </div>
     <div class="card">
@@ -4374,6 +4377,7 @@ async function deleteRecord(id, member){
     const json=await res.json();
     if(json.result==='success'){
       loadHistory();
+      loadOngoingRecords(); 
     } else {
       alert('削除エラー：'+(json.message||'不明'));
     }
