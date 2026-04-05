@@ -3201,6 +3201,11 @@ async function renderHistoryList(records, isAdmin){
           ${bd.map(b=>{ const isGroup=b.name.startsWith('【')&&b.name.endsWith('】')&&b.price===0; const isAdj=b.name==='【調整値引き】'; const priceStr=isAdj?`<span style="color:#c62828;">-¥${Number(-b.price).toLocaleString()}</span>`:`<span>¥${Number(b.price).toLocaleString()}</span>`; return `<div class="row"><span${isAdj?' style="color:#c62828;font-weight:700;"':''}>${b.name}</span>${isGroup?'':priceStr}</div>`; }).join('')}
           <div class="row total"><span>小計</span><span>¥${Number(r.subtotal||0).toLocaleString()}</span></div>
         </div>
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button onclick="event.stopPropagation();(()=>{const l=buildBdLinesFromRecord(currentHistoryRecords[${idx}]);copyBdOnly(l);})()" style="flex:1;padding:9px 4px;background:#fff;border:1.5px solid #ccc;border-radius:8px;font-size:12px;font-weight:700;color:#555;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">📋 内訳</button>
+          <button onclick="event.stopPropagation();copySigOnly()" style="flex:1;padding:9px 4px;background:#fff;border:1.5px solid #ccc;border-radius:8px;font-size:12px;font-weight:700;color:#555;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">✍️ 署名</button>
+          <button onclick="event.stopPropagation();(()=>{const l=buildBdLinesFromRecord(currentHistoryRecords[${idx}]);copyBdAndSig(l);})()" style="flex:1;padding:9px 4px;background:#fff;border:1.5px solid #ccc;border-radius:8px;font-size:12px;font-weight:700;color:#555;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">📋＋✍️</button>
+        </div>
         ${r.buZaiTotal>0?`<div class="hi-memo" style="background:#f0f8ff;border-left:3px solid #4a90d9;"><div class="memo-label" style="color:#2a60a9;">部材合計</div><span style="font-family:'DM Mono',monospace;font-weight:700;color:#2a60a9;">¥${Number(r.buZaiTotal||0).toLocaleString()}</span></div>`:''}
         ${(()=>{
           const mem = isAdmin ? (r.member || r.ownerMember || '') : currentUser;
@@ -3639,6 +3644,7 @@ function extractDistBadge(memo){
 }
 // ===== 詳細モーダル =====
 function openDetailModal(r, member){
+  currentDetailRecord = r;
   const bd = parseBdText(r.bdText||'');
   const keijo = getKeijo(r);
   const mem = member || r.member || r.ownerMember || '';
@@ -3705,6 +3711,11 @@ const bdHtmlDetail = bd.length
       </div>
     </div>
     ${bdHtmlDetail}
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button onclick="(()=>{const l=buildBdLinesFromRecord(currentDetailRecord);copyBdOnly(l);})()" style="flex:1;padding:10px 4px;background:#fff;border:1.5px solid #ccc;border-radius:8px;font-size:13px;font-weight:700;color:#555;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">📋 内訳</button>
+      <button onclick="copySigOnly()" style="flex:1;padding:10px 4px;background:#fff;border:1.5px solid #ccc;border-radius:8px;font-size:13px;font-weight:700;color:#555;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">✍️ 署名</button>
+      <button onclick="(()=>{const l=buildBdLinesFromRecord(currentDetailRecord);copyBdAndSig(l);})()" style="flex:1;padding:10px 4px;background:#fff;border:1.5px solid #ccc;border-radius:8px;font-size:13px;font-weight:700;color:#555;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">📋＋✍️</button>
+    </div>
     <div style="background:#f0f7f0;border-left:3px solid #43a047;padding:10px;border-radius:0 8px 8px 0;margin-bottom:12px;">
       <div style="font-size:12px;color:#2e7d32;margin-bottom:2px;">計上額（税抜）配分率${rate}%</div>
       <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#2e7d32;">¥${keijo.toLocaleString()}</div>
@@ -5398,6 +5409,51 @@ function copyFormSummary(){
   navigator.clipboard.writeText(text)
     .then(() => alert('コピーしました！'))
     .catch(() => alert('コピーに失敗しました'));
+    }
+// ===== 分割コピー共通関数 =====
+let currentDetailRecord = null;
+
+function buildBreakdownText(rows, adjElId){
+  const groups = rows.filter(r=>r.type==='group');
+  let lines=[];
+  groups.forEach(group=>{
+    lines.push(group.name||'');
+    rows.filter(r=>r.type==='item'&&r.groupId===group.id).forEach(r=>{
+      const base=Math.round((r.price||0)*(r.qty||1));
+      const price=r.discount>0?Math.round(base*(1-r.discount/100)):base;
+      let label=r.name;
+      if(r.qty>1) label+=' ×'+r.qty;
+      if(r.discount>0) label+=' '+r.discount+'%off';
+      lines.push(label+'　¥'+price.toLocaleString());
+    });
+  });
+  const adj=Number(document.getElementById(adjElId)?.value)||0;
+  if(adj>0) lines.push('調整値引　-¥'+adj.toLocaleString());
+  return lines;
+}
+
+function buildBdLinesFromRecord(r){
+  const bd=parseBdText(r.bdText||'');
+  let lines=[];
+  bd.forEach(b=>{
+    const isGroup=b.name.startsWith('【')&&b.name.endsWith('】')&&b.price===0;
+    if(isGroup){ lines.push(b.name.slice(1,-1)); }
+    else if(b.name==='【調整値引き】'){ lines.push('調整値引　-¥'+Math.abs(Number(b.price)).toLocaleString()); }
+    else { lines.push(b.name+'　¥'+Number(b.price).toLocaleString()); }
+  });
+  lines.push('小計　¥'+Number(r.subtotal||0).toLocaleString());
+  return lines;
+}
+
+function getSig(){ return localStorage.getItem('kaeru_signature_'+currentUser)||''; }
+function copyBdOnly(lines){ doCopyText(lines.join('\n')); }
+function copySigOnly(){ const s=getSig(); if(!s){alert('署名が設定されていません。設定タブで登録してください。');return;} doCopyText(s); }
+function copyBdAndSig(lines){ const s=getSig(); const p=[...lines]; if(s) p.push('',s); doCopyText(p.join('\n')); }
+function doCopyText(text){
+  navigator.clipboard.writeText(text).then(()=>alert('コピーしました！')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('コピーしました！');
+  });
+}
 }
 </script>
 
