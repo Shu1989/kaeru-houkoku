@@ -600,7 +600,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <span style="font-size:12px;opacity:.85;">完了にすると当月の集計に計上されます。</span>
       </div>
     </div>
-
+　　<button id="copyBtn" onclick="copyFormSummary()" class="btn-submit" style="margin-top:6px;background:#1565c0;">📋 内訳＋署名をコピー</button>
     <button class="btn-submit" id="submitBtn" onclick="submitForm()">送信</button>
     <div id="docGenArea" style="display:none;margin-top:16px;background:#f0f7f0;border:1.5px solid #a5d6a7;border-radius:10px;padding:16px;">
       <div style="font-size:13px;font-weight:700;color:#2e7d32;margin-bottom:12px;"></div>
@@ -701,6 +701,13 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
           <button onclick="listEditorAdd('bdItems','listNewBdItem')" style="padding:8px 14px;background:#2e7d32;color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;">追加</button>
         </div>
       </div>
+      <div class="card" style="margin-bottom:14px;">
+  <div class="card-title"><span></span>署名設定</div>
+  <div style="font-size:12px;color:#888;margin-bottom:10px;">コピーボタンで使用する署名を設定してください。この端末にのみ保存されます。</div>
+  <textarea id="signatureText" rows="8" placeholder="例：&#10;◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇&#10;Kaeru Water works&#10;氏名&#10;住所&#10;携帯：&#10;E-mail：&#10;◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇◇" style="font-size:13px;line-height:1.8;"></textarea>
+  <button onclick="saveSignature()" class="btn-submit" style="margin-top:10px;">💾 署名を保存</button>
+  <div id="signatureSaveMsg" style="margin-top:6px;font-size:13px;color:#2e7d32;"></div>
+</div>
     </div>
 
     <!-- メンバー管理・配分率（管理者のみ） -->
@@ -917,6 +924,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
         <span style="font-size:12px;opacity:.85;">日付の確認をお願いします！月をまたぐ場合は日付を修正してから保存してください。</span>
       </div>
     </div>
+    <button onclick="copyEditSummary()" class="btn-submit" style="margin-bottom:10px;background:#1565c0;">📋 内訳＋署名をコピー</button>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeEditModal()">キャンセル</button>
       <button class="btn-modal-save" id="editSaveBtn" onclick="saveEdit()">保存する</button>
@@ -1770,6 +1778,7 @@ renderWorkCandidateList('');
 checkReceivedDistributionPopup();
 openRecordFromUrl();
 loadOngoingRecords();
+loadSignature();
 }
 
 // ===== セレクト =====
@@ -5312,6 +5321,83 @@ function openOngoingEdit(idx){
   const r = ongoingRecords[idx];
   if(!r) return;
   openEditModal(r);
+}
+  // ===== 署名設定・コピー =====
+function saveSignature(){
+  const val = document.getElementById('signatureText').value;
+  localStorage.setItem('kaeru_signature_' + currentUser, val);
+  const msg = document.getElementById('signatureSaveMsg');
+  msg.textContent = '✅ 保存しました！';
+  setTimeout(()=> msg.textContent = '', 2000);
+}
+
+function loadSignature(){
+  const val = localStorage.getItem('kaeru_signature_' + currentUser) || '';
+  const el = document.getElementById('signatureText');
+  if(el) el.value = val;
+}
+
+function copyFormSummary(){
+  const groups = breakdownRows.filter(r => r.type === 'group');
+  let lines = [];
+
+  groups.forEach(group => {
+    lines.push(group.name || '');
+    const items = breakdownRows.filter(r => r.type === 'item' && r.groupId === group.id);
+    items.forEach(r => {
+      const base = Math.round((r.price || 0) * (r.qty || 1));
+      const price = r.discount > 0 ? Math.round(base * (1 - r.discount / 100)) : base;
+      let label = r.name;
+      if(r.qty > 1) label += ' ×' + r.qty;
+      if(r.discount > 0) label += ' ' + r.discount + '%off';
+      lines.push(label + '　¥' + price.toLocaleString());
+    });
+  });
+
+  const adj = Number(document.getElementById('adjustDiscount')?.value) || 0;
+  if(adj > 0) lines.push('調整値引　-¥' + adj.toLocaleString());
+
+  const subtotal = calcSubtotal();
+  lines.push('小計　¥' + subtotal.toLocaleString());
+
+  const sig = localStorage.getItem('kaeru_signature_' + currentUser) || '';
+  if(sig) lines.push('', sig);
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text)
+    .then(() => alert('コピーしました！'))
+    .catch(() => alert('コピーに失敗しました'));
+}
+  function copyEditSummary(){
+  let lines = [];
+  const groups = editBreakdownRows.filter(r => r.type === 'group');
+
+  groups.forEach(group => {
+    lines.push(group.name || '');
+    const items = editBreakdownRows.filter(r => r.type === 'item' && r.groupId === group.id);
+    items.forEach(r => {
+      const base = Math.round((r.price || 0) * (r.qty || 1));
+      const price = r.discount > 0 ? Math.round(base * (1 - r.discount / 100)) : base;
+      let label = r.name;
+      if(r.qty > 1) label += ' ×' + r.qty;
+      if(r.discount > 0) label += ' ' + r.discount + '%off';
+      lines.push(label + '　¥' + price.toLocaleString());
+    });
+  });
+
+  const adj = Number(document.getElementById('eAdjustDiscount')?.value) || 0;
+  if(adj > 0) lines.push('調整値引　-¥' + adj.toLocaleString());
+
+  const subtotal = calcEditSubtotal();
+  lines.push('小計　¥' + subtotal.toLocaleString());
+
+  const sig = localStorage.getItem('kaeru_signature_' + currentUser) || '';
+  if(sig) lines.push('', sig);
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text)
+    .then(() => alert('コピーしました！'))
+    .catch(() => alert('コピーに失敗しました'));
 }
 </script>
 
