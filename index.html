@@ -1450,12 +1450,10 @@ function calcKeijoGaku(subtotal, buZaiTotal, member){
 // ★ レコードにスプレッドシート保存の計上額がある場合はそれを優先使用
 function getKeijo(r){
   const mem = r.member || currentUser;
-  // 配分率0%（adminなど）は常に計上0
   if((memberRates[mem] ?? 100) === 0) return 0;
-  // keijo=0でもkaisha>0なら保存値が正しい（配分率0%のケース）
+  // ★ keijo列に値があれば（0でも）保存値を優先
   if(r.keijo !== undefined && r.keijo !== null && r.keijo !== ''){
-    if(Number(r.keijo) !== 0) return Number(r.keijo);
-    if(Number(r.kaisha||0) > 0) return 0;
+    return Number(r.keijo);
   }
   return calcKeijoGaku(Number(r.subtotal||0), Number(r.buZaiTotal||0), mem);
 }
