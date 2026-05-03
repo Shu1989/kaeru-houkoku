@@ -1338,12 +1338,10 @@ function getMultiDistribution(){
 
   const dist = {};
   multiRows.forEach(r=>{
-    if((r.amount || 0) > 0 || (r.material || 0) > 0){
-      dist[r.member] = {
-        amount: Number(r.amount || 0),
-        material: Number(r.material || 0)
-      };
-    }
+    dist[r.member] = {
+      amount: Number(r.amount || 0),
+      material: Number(r.material || 0)
+    };
   });
 
   return Object.keys(dist).length > 0 ? dist : null;
