@@ -3625,7 +3625,7 @@ function extractDistBadge(memo){
     distBreakdown = breakdownMatch[1].split(',').map(item=>{
       const [name, amt] = item.split(':');
       return {name, amt: Number(amt||0)};
-    }).filter(d=>d.name && d.amt>0);
+    }).filter(d=>d.name);
     clean = clean.replace(/\|内訳:[^\|\n\r]+/, '').trim();
   }
 
