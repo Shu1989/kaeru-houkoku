@@ -2713,6 +2713,11 @@ function switchTab(tab,btn){
 
 // ===== 送信 =====
 let isSubmitting = false;
+function resetSubmitBtn(){
+  isSubmitting = false;
+  const btn = document.getElementById('submitBtn');
+  if(btn){ btn.disabled=false; btn.innerHTML='送信'; }
+}
 async function submitForm(){
   if(isSubmitting) return;
   const date=document.getElementById('fDate').value;
@@ -2772,23 +2777,13 @@ async function submitForm(){
   const dist = getMultiDistribution();
   let breakdown = '';
   if (document.getElementById('multiMemberCheck')?.checked) {
-  const selfRow = multiRows.find(r => r.member === currentUser);
-
-  if (!selfRow || !selfRow.amount || selfRow.amount <= 0) {
-    showStatus('statusMsg','error','⚠️ 入力者本人の計上額を入力してください');
-    btn.disabled = false;
-    btn.innerHTML = '送信';
-    return;
-  }
-
   const emptyOther = multiRows.find(r =>
     r.member !== currentUser && (!r.amount || r.amount <= 0)
   );
 
   if (emptyOther) {
     showStatus('statusMsg','error','⚠️ 分配メンバーの計上額が未入力です');
-    btn.disabled = false;
-    btn.innerHTML = '送信';
+    resetSubmitBtn();
     return;
   }
 
@@ -2796,8 +2791,7 @@ async function submitForm(){
 
   if (distTotal !== subtotal) {
     showStatus('statusMsg','error','⚠️ 分配合計と案件小計が一致していません');
-    btn.disabled = false;
-    btn.innerHTML = '送信';
+    resetSubmitBtn();
     return;
   }
 }
@@ -2883,8 +2877,7 @@ console.log('受取側subRecord', subRecord);
     console.error('submitForm error:', e, JSON.stringify(record).slice(0,500));
     showStatus('statusMsg','error','⚠️ エラー：'+e.message+' / '+e.stack?.slice(0,100));
   }
-  isSubmitting=false;
-  btn.disabled=false; btn.innerHTML='送信';
+  resetSubmitBtn();
 }
 
 // ===== 書類生成 =====
