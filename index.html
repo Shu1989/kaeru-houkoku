@@ -229,7 +229,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 #buZaiTotalDisplay { color: #7b1fa2 !important; }
 .hi-breakdown .row span:last-child { color: #7b1fa2; }
 </style>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjBonMsw5VKcshZxQWUB3dxfAEJ8McOCQ&libraries=places&language=ja&callback=initPlaceAutocomplete"></script>
+<script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjBonMsw5VKcshZxQWUB3dxfAEJ8McOCQ&libraries=places&language=ja&callback=initPlaceAutocomplete"></script>
 </head>
 <body>
 
@@ -265,8 +265,9 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 <!-- LOGIN -->
 <div id="errorScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:24px;text-align:center;">
   <div style="font-size:60px;">🐸</div>
-  <div style="font-size:18px;font-weight:700;color:var(--text);">専用URLからアクセスしてください</div>
-  <div style="font-size:14px;color:var(--text2);">このページは直接開けません。<br>担当者から受け取ったURLをご利用ください。</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);" id="errorScreenTitle">専用URLからアクセスしてください</div>
+  <div style="font-size:14px;color:var(--text2);" id="errorScreenBody">このページは直接開けません。<br>担当者から受け取ったURLをご利用ください。</div>
+  <button onclick="location.reload()" style="margin-top:8px;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🔄 再読み込み</button>
 </div>
 <div id="loginScreen" style="display:none;">
   <div class="login-box">
@@ -342,15 +343,14 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       </div>
       <div class="form-group">
         <label class="fl">顧客名<span class="req">*</span></label>
-        <div class="select-add-wrap">
-          <select id="fClient" onchange="onClientChange()"></select>
-          <button class="btn-add-option" onclick="toggleInlineAdd('clientAdd')" title="新規追加">＋</button>
+        <div id="clientDisplay" style="display:none;background:#f9f9f9;border:1.5px solid var(--accent);border-radius:8px;padding:10px 12px;cursor:pointer;position:relative;" onclick="clearClientSelection()">
+          <div id="clientDisplayName" style="font-size:14px;font-weight:700;color:#222;"></div>
+          <span style="position:absolute;top:8px;right:10px;font-size:12px;color:#aaa;">✕</span>
         </div>
-        <div class="inline-add" id="clientAdd">
-          <input type="text" id="clientAddInput" placeholder="顧客名を入力">
-          <button class="btn-confirm" onclick="addOption('fClient','clientAddInput','clientAdd','clients')">追加</button>
-          <button class="btn-cancel-add" onclick="closeInlineAdd('clientAdd')">×</button>
-        </div>
+        <input type="text" id="fClientSearch" placeholder="顧客名を検索" autocomplete="off" oninput="renderClientCandidateList(this.value)" onfocus="renderClientCandidateList(this.value)">
+        <input type="hidden" id="fClient" value="">
+        <div id="clientCandidateList" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;"></div>
+        <button type="button" id="clientRefreshBtn" onclick="refreshClients()" style="width:100%;margin-top:6px;padding:8px;border:1px dashed var(--border);border-radius:8px;background:#fff;color:#777;font-size:12px;cursor:pointer;">🔄 顧客リストを更新</button>
         <div class="tesuco-docs" id="tesucoDocsArea" style="display:none;">
           <div class="doc-title">📄 書類作成チェック</div>
           <div class="doc-check-row">
@@ -720,12 +720,20 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       <button class="btn-submit" style="margin-top:12px;" onclick="saveMemberSettings()">💾 メンバーを保存</button>
       <div id="memberSaveMsg" style="margin-top:8px;font-size:13px;color:#2e7d32;"></div>
     </div>
-    <div class="card">
+    <div class="card" style="margin-bottom:14px;">
       <div class="card-title"><span></span>配分率設定</div>
       <div style="font-size:12px;color:#888;margin-bottom:12px;">計上額 ＝（小計 − 部材）× 配分率 ＋ 部材</div>
       <div id="rateSettingList"></div>
       <button class="btn-submit" style="margin-top:12px;" onclick="saveRates()">💾 配分率を保存</button>
       <div id="rateSaveMsg" style="margin-top:8px;font-size:13px;color:#2e7d32;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span></span>顧客管理</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px;">元請け（顧客）の追加・略称／正式名称の編集・必要書類の設定ができます。ここで保存した内容は全メンバーに反映されます。</div>
+      <div id="clientSettingList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <button onclick="addClientRow()" style="width:100%;padding:10px;border:1.5px dashed #aaa;border-radius:8px;background:none;font-size:14px;color:#555;cursor:pointer;">＋ 顧客を追加</button>
+      <button class="btn-submit" style="margin-top:12px;" onclick="saveClientSettings()">💾 顧客を保存</button>
+      <div id="clientSaveMsg" style="margin-top:8px;font-size:13px;color:#2e7d32;"></div>
     </div>
     </div><!-- /adminSettingArea -->
   </div>
@@ -773,15 +781,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     </div>
     <div class="form-group">
       <label class="fl">顧客名</label>
-      <div class="select-add-wrap">
-        <select id="eClient" onchange="onEClientChange()" style="flex:1;"></select>
-        <button class="btn-add-option" onclick="toggleInlineAdd('eClientAdd')" title="新規追加">＋</button>
-      </div>
-      <div class="inline-add" id="eClientAdd">
-        <input type="text" id="eClientAddInput" placeholder="顧客名を入力">
-        <button class="btn-confirm" onclick="addEClientOption()">追加</button>
-        <button class="btn-cancel-add" onclick="closeInlineAdd('eClientAdd')">×</button>
-      </div>
+      <select id="eClient" onchange="onEClientChange()" style="width:100%;"></select>
       <!-- 書類作成チェック（編集用） -->
       <div class="tesuco-docs" id="eTesucoDocsArea" style="display:none;">
         <div class="doc-title">📄 書類作成チェック</div>
@@ -1606,12 +1606,81 @@ async function saveMemberSettings(ratesOnly=false){
   }
 }
 
+// ===== 顧客管理（管理者設定画面） =====
+let clientSettingRows = [];
+
+function renderClientSetting(){
+  clientSettingRows = ALL_CLIENTS.map(c => ({...c}));
+  renderClientSettingList();
+}
+
+function renderClientSettingList(){
+  const list = document.getElementById('clientSettingList');
+  if(!list) return;
+  list.innerHTML = clientSettingRows.map((r,i) => `
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:10px;padding:10px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <input type="text" placeholder="略称" value="${r.short}" oninput="clientSettingRows[${i}].short=this.value"
+          style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-weight:700;">
+        <input type="text" placeholder="正式名称" value="${r.full}" oninput="clientSettingRows[${i}].full=this.value"
+          style="flex:2;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;">
+        <button onclick="removeClientRow(${i})" style="padding:7px 10px;background:#ffebee;border:none;border-radius:6px;color:#c62828;cursor:pointer;">×</button>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#555;">
+        <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${r.mitsumori?'checked':''} onchange="clientSettingRows[${i}].mitsumori=this.checked">見積書</label>
+        <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${r.nohinshi?'checked':''} onchange="clientSettingRows[${i}].nohinshi=this.checked">納品書</label>
+        <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${r.houkokusho?'checked':''} onchange="clientSettingRows[${i}].houkokusho=this.checked">報告書</label>
+        <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" ${r.seikyusho?'checked':''} onchange="clientSettingRows[${i}].seikyusho=this.checked">請求書</label>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addClientRow(){
+  clientSettingRows.push({short:'', full:'', mitsumori:false, nohinshi:false, houkokusho:false, seikyusho:false});
+  renderClientSettingList();
+}
+
+function removeClientRow(i){
+  clientSettingRows.splice(i,1);
+  renderClientSettingList();
+}
+
+async function saveClientSettings(){
+  const btn = document.querySelector('[onclick="saveClientSettings()"]');
+  if(btn){ btn.disabled=true; btn.textContent='保存中...'; }
+
+  const clients = clientSettingRows.filter(r => r.short && r.short.trim());
+  try{
+    const encoded = encodeURIComponent(JSON.stringify({action:'saveClients', clients}));
+    const res = await fetch(GAS_URL+'?data='+encoded);
+    const json = await res.json();
+    if(json.result==='success'){
+      await fetchClients();
+      renderClientSetting();
+      renderClientCandidateList('');
+      buildSelect('eClient', lists.clients, '顧客名を選択');
+      document.getElementById('clientSaveMsg').textContent = '✅ 保存しました！';
+      setTimeout(()=>document.getElementById('clientSaveMsg').textContent='',2000);
+    } else {
+      document.getElementById('clientSaveMsg').textContent = '⚠️ 保存失敗: '+(json.message||'不明');
+    }
+  }catch(e){
+    document.getElementById('clientSaveMsg').textContent = '⚠️ 保存失敗: '+e.message;
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='💾 顧客を保存'; }
+  }
+}
+
 // メンバーはGASから動的取得（起動時にロード）
 let ALL_MEMBERS = [];
 let MEMBER_CODES_MAP = {}; // code -> name
 let memberRatesFromGAS = {}; // name -> rate
 
-const DEFAULT_CLIENTS  = ['アネシス','テスコ','グローバー','東洋世田谷第一','東洋世田谷第二','東洋サポート','東洋ユニオン横浜','東洋ユニオン千葉','東洋ユニオン八潮','東洋ビル横浜','東洋ビル多摩','東洋ビル大宮','東洋住宅横浜','東洋','東洋新横浜','ミックスアップ','ティーテック','長栄'];
+// 顧客マスタはGASから動的取得（起動時にfetchClientsでロード）
+let ALL_CLIENTS = []; // [{short, full, mitsumori, nohinshi, houkokusho, seikyusho}]
+let CLIENT_MAP = {};  // short -> client object
+
 const DEFAULT_WORKS    = ['漏水調査','排水詰まり除去作業','トイレ詰まり除去作業','養生作業','グリストラップ詰まり除去作業','給湯管一部改修','水栓交換作業','高圧洗浄作業','フレキ管交換作業','スピンドル交換作業'];
 const DEFAULT_BD_ITEMS = [
   { name:'作業費', defaultPrice:0 },
@@ -1671,7 +1740,7 @@ function findBdItem(name){
 }
 
 let lists = {
-  clients: loadList('anken_clients', DEFAULT_CLIENTS),
+  clients: loadList('anken_clients', []),
   works:   loadList('anken_works',   DEFAULT_WORKS),
   bdItems: normalizeBdItems(loadList('anken_bditems', DEFAULT_BD_ITEMS)),
   bdGroups: loadList('anken_bdgroups', DEFAULT_BD_GROUPS),
@@ -1691,7 +1760,7 @@ let editBreakdownRows = [];
 }
 
 // ===== URLパラメータ自動ログイン（GASからメンバー取得後に実行） =====
-async function fetchMembers(){
+async function fetchMembers(retry){
   try {
     const res = await fetch(GAS_URL + '?action=getMembers');
     const json = await res.json();
@@ -1706,17 +1775,73 @@ async function fetchMembers(){
       });
       return true;
     }
-  } catch(e) { console.warn('メンバー取得失敗:', e); }
+  } catch(e) {
+    console.warn('メンバー取得失敗:', e);
+    // ★一時的な通信不良でログイン不能になるのを防ぐため、最大2回リトライ
+    if((retry || 0) < 2){
+      await new Promise(r => setTimeout(r, 800));
+      return fetchMembers((retry || 0) + 1);
+    }
+  }
   return false;
+}
+
+// ===== 顧客マスタ取得（GASから動的取得） =====
+async function fetchClients(){
+  try {
+    const res = await fetch(GAS_URL + '?action=getClients');
+    const json = await res.json();
+    if(json.result === 'success'){
+      ALL_CLIENTS = json.clients || [];
+      CLIENT_MAP = {};
+      ALL_CLIENTS.forEach(c => { CLIENT_MAP[c.short] = c; });
+      syncClientOrderList();
+      return true;
+    }
+  } catch(e) { console.warn('顧客マスタ取得失敗:', e); }
+  return false;
+}
+
+// 既存の「使った順」並びを保ちつつ、削除された顧客を除去・新規顧客を追加
+function syncClientOrderList(){
+  const known = ALL_CLIENTS.map(c => c.short);
+  let ordered = (lists.clients || []).filter(name => known.includes(name));
+  known.forEach(name => { if(!ordered.includes(name)) ordered.push(name); });
+  lists.clients = ordered;
+  saveList('anken_clients', lists.clients);
+}
+
+// 手動更新ボタン用：顧客マスタを再取得して画面に反映
+async function refreshClients(){
+  const btn = document.getElementById('clientRefreshBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '🔄 更新中...'; }
+  await fetchClients();
+  renderClientCandidateList(document.getElementById('fClientSearch')?.value || '');
+  buildSelect('eClient', lists.clients, '顧客名を選択');
+  if(btn){ btn.disabled = false; btn.textContent = '🔄 顧客リストを更新'; }
+}
+
+// ===== 自分のレコード取得（ログイン直後の重複fetchをまとめる） =====
+let myRecordsCache = null;
+async function getMyRecords(force){
+  if(!currentUser || currentUser === 'admin') return [];
+  if(myRecordsCache && !force) return myRecordsCache;
+  try{
+    const res = await fetch(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser));
+    const json = await res.json();
+    myRecordsCache = json.records || [];
+  }catch(e){
+    console.warn('自分のレコード取得失敗:', e);
+    myRecordsCache = myRecordsCache || [];
+  }
+  return myRecordsCache;
 }
 
   async function checkReceivedDistributionPopup(){
   if(!currentUser || currentUser === 'admin') return;
 
   try{
-    const res = await fetch(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser));
-    const json = await res.json();
-    const records = (json.records || []);
+    const records = await getMyRecords();
 
     const received = records.filter(r => /【分配】([^\n\r]+?)より/.test(String(r.memo || '')));
     if(!received.length) return;
@@ -1743,14 +1868,19 @@ async function fetchMembers(){
 }
 
 async function checkUrlLogin(){
-  // GASからメンバーマスタ取得
-  await fetchMembers();
+  // GASからメンバー・顧客マスタを並行取得
+  const [membersOk] = await Promise.all([fetchMembers(), fetchClients()]);
 
   const params = new URLSearchParams(window.location.search);
   const code = params.get('member');
   if(!code || !MEMBER_CODES_MAP[code]){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('appScreen').style.display='none';
+    if(code && !membersOk){
+      // ★通信不良でメンバー情報が取得できなかった場合は、URL不正と区別して案内
+      document.getElementById('errorScreenTitle').textContent = '読み込みに失敗しました';
+      document.getElementById('errorScreenBody').innerHTML = '通信状況が不安定な可能性があります。<br>電波の良い場所で再読み込みしてください。';
+    }
     document.getElementById('errorScreen').style.display='flex';
     return;
   }
@@ -1806,8 +1936,6 @@ function setSelectOrAdd(selectId, value, listArr){
   sel.value = val;
 }
   
-const REPORT_CLIENTS = ['東洋世田谷第一','東洋世田谷第二','東洋サポート'];
-
 function copyHoukokushoTemplate(){
   const text = document.getElementById('houkokushoTemplate').textContent;
   navigator.clipboard.writeText(text).then(()=>{
@@ -1842,30 +1970,29 @@ function toggleEStatusWarning(val){
   if(warn) warn.style.display = val === '完了' ? 'block' : 'none';
 }
 
-// ===== 編集モーダル 顧客変更・書類欄切替 =====
+// ===== 編集モーダル 顧客変更・書類欄切替（顧客マスタのフラグで動的判定） =====
 function onEClientChange(){
   const val = document.getElementById('eClient').value;
+  const c = CLIENT_MAP[val] || {};
 
   const eTesucoArea = document.getElementById('eTesucoDocsArea');
   const eReportArea = document.getElementById('eReportDocsArea');
   const eMitsuRow   = document.getElementById('eChkMitsumoriRow');
   const eNohinRow   = document.getElementById('eChkNohinshiRow');
 
-  // テスコ・長栄：見積書＋（テスコのみ納品書）
-  if(eTesucoArea) eTesucoArea.style.display = ['テスコ','長栄','ティーテック'].includes(val) ? 'block' : 'none';
-  if(eMitsuRow)   eMitsuRow.style.display   = ['テスコ','長栄','ティーテック'].includes(val) ? 'flex'  : 'none';
-  if(eNohinRow)   eNohinRow.style.display   = val === 'テスコ' ? 'flex' : 'none';
+  const showTesucoArea = !!(c.mitsumori || c.nohinshi);
+  if(eTesucoArea) eTesucoArea.style.display = showTesucoArea ? 'block' : 'none';
+  if(eMitsuRow)   eMitsuRow.style.display   = c.mitsumori ? 'flex' : 'none';
+  if(eNohinRow)   eNohinRow.style.display   = c.nohinshi ? 'flex' : 'none';
 
-  // ティーテック：請求書
   const eSeikyushoArea = document.getElementById('eSeikyushoDocsArea');
-  if(eSeikyushoArea) eSeikyushoArea.style.display = val === 'ティーテック' ? 'block' : 'none';
-  if(val !== 'ティーテック'){
+  if(eSeikyushoArea) eSeikyushoArea.style.display = c.seikyusho ? 'block' : 'none';
+  if(!c.seikyusho){
     const eChkS = document.getElementById('eChkSeikyusho');
     if(eChkS) eChkS.checked = false;
   }
 
-  // 東洋系3社：報告書
-  if(eReportArea) eReportArea.style.display = REPORT_CLIENTS.includes(val) ? 'block' : 'none';
+  if(eReportArea) eReportArea.style.display = c.houkokusho ? 'block' : 'none';
 
   // 書類チェックは常にOFF（初期状態）
   ['eChkMitsumori','eChkNohinshi','eChkHoukokusho'].forEach(id=>{
@@ -1874,61 +2001,40 @@ function onEClientChange(){
   });
 }
 
-function addEClientOption(){
-  const inp = document.getElementById('eClientAddInput');
-  const val = inp?.value.trim();
-  if(!val){ inp?.focus(); return; }
-  if(!lists.clients.includes(val)){
-    lists.clients.push(val);
-    saveList('anken_clients', lists.clients);
-  }
-  buildSelect('eClient', lists.clients, '顧客名を選択');
-  buildSelect('fClient', lists.clients, '選択または＋で追加');
-  document.getElementById('eClient').value = val;
-  closeInlineAdd('eClientAdd');
-  onEClientChange();
-}
-
 function onClientChange(){
   const val = document.getElementById('fClient').value;
+  const c = CLIENT_MAP[val] || {};
 
-  // テスコ・長栄：書類チェック
   const tesucoArea = document.getElementById('tesucoDocsArea');
-  if(tesucoArea) tesucoArea.style.display = ['テスコ', '長栄', 'ティーテック'].includes(val) ? 'block' : 'none';
+  const showTesucoArea = !!(c.mitsumori || c.nohinshi || c.seikyusho);
+  if(tesucoArea) tesucoArea.style.display = showTesucoArea ? 'block' : 'none';
 
-  // 見積書
   const mitsuRow = document.getElementById('chkMitsumoriRow');
-  if(mitsuRow) mitsuRow.style.display = ['テスコ', '長栄', 'ティーテック'].includes(val) ? 'flex' : 'none';
+  if(mitsuRow) mitsuRow.style.display = c.mitsumori ? 'flex' : 'none';
 
-  // 納品書
   const nohinRow = document.getElementById('chkNohinshiRow');
-  if(nohinRow) nohinRow.style.display = val === 'テスコ' ? 'flex' : 'none';
+  if(nohinRow) nohinRow.style.display = c.nohinshi ? 'flex' : 'none';
 
-  if(!['テスコ', '長栄', 'ティーテック'].includes(val)){
-    document.getElementById('chkMitsumori').checked = false;
-  }
-  if(!['テスコ', 'ティーテック'].includes(val)){
-    document.getElementById('chkNohinshi').checked = false;
-  }
+  if(!c.mitsumori) document.getElementById('chkMitsumori').checked = false;
+  if(!c.nohinshi)  document.getElementById('chkNohinshi').checked = false;
 
-  // 東洋系3社：報告書
-  // ティーテック：tesucoDocsArea内の請求書行を出し入れ
   const seikyushoRow = document.getElementById('chkSeikyushoRow');
-  if(seikyushoRow) seikyushoRow.style.display = val === 'ティーテック' ? 'flex' : 'none';
-  if(val !== 'ティーテック'){
+  if(seikyushoRow) seikyushoRow.style.display = c.seikyusho ? 'flex' : 'none';
+  if(!c.seikyusho){
     const chkS = document.getElementById('chkSeikyusho');
     if(chkS) chkS.checked = false;
   }
 
   const reportArea = document.getElementById('reportDocsArea');
-  if(reportArea) reportArea.style.display = REPORT_CLIENTS.includes(val) ? 'block' : 'none';
-  if(!REPORT_CLIENTS.includes(val)){
+  if(reportArea) reportArea.style.display = c.houkokusho ? 'block' : 'none';
+  if(!c.houkokusho){
     document.getElementById('chkHoukokusho').checked = false;
   }
 }
 
 function initSelects(){
-  buildSelect('fClient', lists.clients, '選択または＋で追加');
+  renderClientCandidateList(document.getElementById('fClientSearch')?.value || '');
+  buildSelect('eClient', lists.clients, '顧客名を選択');
   buildWorkSelect();
   buildSelect('breakdownSelect', getBdItemNames(), '選択または＋で追加');
   buildSelect('groupSelect',     lists.bdGroups, '選択または＋で追加');
@@ -2087,6 +2193,91 @@ function renderWorkTags(){
 
   top.style.display = hasTags ? 'block' : 'none';
   inline.style.display = hasTags ? 'none' : 'block';
+}
+
+  function renderClientCandidates(keyword){
+  const q = String(keyword || '').trim().toLowerCase();
+
+  const items = !q
+    ? lists.clients.slice(0,6)
+    : lists.clients.filter(c => c.toLowerCase().includes(q));
+
+  if(!items.length){
+    return `
+      <div style="font-size:12px;color:#aaa;padding:8px 4px;">
+        候補がありません
+      </div>
+    `;
+  }
+
+  const label = !q ? '最近使った顧客' : '候補';
+
+  return `
+    <div style="font-size:11px;color:#888;margin-bottom:4px;">
+      ${label}
+    </div>
+    ${items.map(name => `
+      <button
+        type="button"
+        onclick="selectClientCandidate('${name.replace(/'/g,"\\'")}')"
+        style="
+          width:100%;
+          text-align:left;
+          padding:10px 12px;
+          border:1px solid var(--border);
+          border-radius:8px;
+          background:#fff;
+          color:var(--text);
+          font-size:13px;
+          cursor:pointer;
+        "
+      >
+        ${name}
+      </button>
+    `).join('')}
+  `;
+}
+
+function renderClientCandidateList(keyword){
+  const list = document.getElementById('clientCandidateList');
+  if(!list) return;
+  list.innerHTML = renderClientCandidates(keyword);
+}
+
+function selectClientCandidate(name){
+  const hidden = document.getElementById('fClient');
+  if(hidden) hidden.value = name;
+  const search = document.getElementById('fClientSearch');
+  if(search) search.value = '';
+  showClientDisplay(name);
+  renderClientCandidateList('');
+  onClientChange();
+}
+
+function showClientDisplay(name){
+  const disp = document.getElementById('clientDisplay');
+  const nameEl = document.getElementById('clientDisplayName');
+  const search = document.getElementById('fClientSearch');
+  const list = document.getElementById('clientCandidateList');
+  if(!disp || !nameEl) return;
+  if(name){
+    nameEl.textContent = name;
+    disp.style.display = 'block';
+    if(search) search.style.display = 'none';
+    if(list) list.style.display = 'none';
+  } else {
+    disp.style.display = 'none';
+    if(search) search.style.display = 'block';
+    if(list) list.style.display = 'flex';
+  }
+}
+
+function clearClientSelection(){
+  const hidden = document.getElementById('fClient');
+  if(hidden) hidden.value = '';
+  showClientDisplay('');
+  renderClientCandidateList('');
+  onClientChange();
 }
 
   function renderWorkCandidates(keyword){
@@ -2703,7 +2894,7 @@ function switchTab(tab,btn){
   document.getElementById('tabSetting').style.display = tab==='setting' ?'block':'none';
   document.getElementById('tabDash').style.display    = tab==='dash'    ?'block':'none';
   if(tab==='history') loadHistory();
-  if(tab==='setting'){ renderListEditor(); renderMemberSetting(); renderRateSetting(); }
+  if(tab==='setting'){ renderListEditor(); renderMemberSetting(); renderRateSetting(); renderClientSetting(); }
   if(tab==='dash') loadDash();
 }
 
@@ -2759,10 +2950,10 @@ async function submitForm(){
     })(),
     buZai: buZaiRows.map(r => r.price),
     buZaiTotal: calcBuZaiTotal(),
-    mitsumori: ['テスコ', '長栄', 'ティーテック'].includes(client) ? document.getElementById('chkMitsumori').checked : false,
-    houkokusho: REPORT_CLIENTS.includes(client) ? document.getElementById('chkHoukokusho').checked : false,
-    nohinshi:  client === 'テスコ' ? document.getElementById('chkNohinshi').checked : false,
-    seikyusho: client === 'ティーテック' ? (document.getElementById('chkSeikyusho')?.checked || false) : false,
+    mitsumori: (CLIENT_MAP[client]?.mitsumori) ? document.getElementById('chkMitsumori').checked : false,
+    houkokusho: (CLIENT_MAP[client]?.houkokusho) ? document.getElementById('chkHoukokusho').checked : false,
+    nohinshi:  (CLIENT_MAP[client]?.nohinshi) ? document.getElementById('chkNohinshi').checked : false,
+    seikyusho: (CLIENT_MAP[client]?.seikyusho) ? (document.getElementById('chkSeikyusho')?.checked || false) : false,
     subtotal
   };
 
@@ -2926,11 +3117,9 @@ async function generateDoc(docType){
 }
 
 function resetForm(){
-  // 顧客・作業をselectの先頭に戻す
+  // 顧客・作業をリセット
   document.getElementById('fJobId').value = '';
-  const fClient = document.getElementById('fClient');
-  if(fClient) fClient.selectedIndex = 0;
-  onClientChange();
+  clearClientSelection();
   const fWork = document.getElementById('fWork');
   if(fWork) fWork.selectedIndex = 0;
   // 場所をクリア
@@ -3001,19 +3190,15 @@ async function loadHistory(){
   try{
   let records=[];
   if(isAdmin){
-    // 管理者：全メンバー＋adminシート分取得
-    const fetches=[...ALL_MEMBERS, 'admin'].map(m=>
-      fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m))
-        .then(r=>r.json())
-        .then(j=>(j.records||[]).map(r=>({...r, ownerMember:m})))
-        .catch(()=>[])
-    );
-    const results=await Promise.all(fetches);
-    records=results.flat();
+    // 管理者：getAllRecordsで1回のスプレッドシートアクセスにまとめる
+    const res=await fetch(GAS_URL+'?action=getAllRecords');
+    const json=await res.json();
+    const all=json.all||{};
+    records=Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
   } else {
     const res=await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
     const json=await res.json();
-    records=(json.records||[]).map(r=>({...r, ownerMember:currentUser}));
+    records=(json.records||[]).map(r=>({...r, member:currentUser, ownerMember:currentUser}));
   }
 
   records.sort((a, b) => {
@@ -3040,23 +3225,21 @@ async function loadHistory(){
   }
 }
 
-    // コールドスタート対策：空だった場合は3秒後に1回再試行
+    // コールドスタート対策：空だった場合は6秒後に1回再試行
     if(records.length === 0){
       await new Promise(r => setTimeout(r, 6000));
       // 再取得
       try{
         if(isAdmin){
-          const fetches2=[...ALL_MEMBERS, 'admin'].map(m=>
-            fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m))
-              .then(r=>r.json()).then(j=>(j.records||[]).map(r=>({...r, ownerMember:m}))).catch(()=>[])
-          );
-          const results2=await Promise.all(fetches2);
-          const retry=results2.flat();
+          const res2=await fetch(GAS_URL+'?action=getAllRecords');
+          const json2=await res2.json();
+          const all2=json2.all||{};
+          const retry=Object.keys(all2).flatMap(m => (all2[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
           if(retry.length>0) records=retry;
         } else {
           const res2=await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
           const json2=await res2.json();
-          if((json2.records||[]).length>0) records=json2.records.map(r=>({...r, ownerMember:currentUser}));
+          if((json2.records||[]).length>0) records=json2.records.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
         }
       }catch(e2){ /* 再試行失敗は無視 */ }
     }
@@ -5264,14 +5447,13 @@ function stripSubDateFromMemo(memo){
 // ===== 継続中案件カード（入力フォーム） =====
 let ongoingRecords = [];
 
-async function loadOngoingRecords(){
+async function loadOngoingRecords(force){
   if(!currentUser || currentUser === 'admin') return;
   try{
-    const res = await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
-    const json = await res.json();
-    ongoingRecords = (json.records||[])
+    const records = await getMyRecords(force);
+    ongoingRecords = (records||[])
       .filter(r => String(r.memo||'').startsWith('【継続中】'))
-      .map(r => ({...r, ownerMember: currentUser}));
+      .map(r => ({...r, member: currentUser, ownerMember: currentUser}));
     renderOngoingCard();
   }catch(e){ console.warn('継続中取得失敗:', e); }
 }
