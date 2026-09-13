@@ -13,7 +13,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>かえる案件報告</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 :root {
   --bg:#f5f3ef; --surface:#fff; --surface2:#f0ede8; --border:#ddd8d0;
@@ -25,21 +26,6 @@
 *{box-sizing:border-box;margin:0;padding:0;} html,body{max-width:100%;overflow-x:hidden;} input,select,textarea,button{max-width:100%;} .pac-container{z-index:9999;} #map,iframe,.gm-style{max-width:100%!important;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;}
 
-/* LOGIN */
-#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;}
-#loginScreen::before{content:'';position:absolute;top:-120px;right:-120px;width:400px;height:400px;background:radial-gradient(circle,rgba(200,81,10,0.08) 0%,transparent 70%);}
-.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.1);position:relative;z-index:1;animation:slideUp .4s ease;}
-.login-logo{width:48px;height:48px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-size:22px;}
-.login-box h1{font-size:20px;font-weight:900;margin-bottom:4px;}
-.login-box .sub{color:var(--text2);font-size:13px;margin-bottom:26px;}
-.lf{margin-bottom:13px;}
-.lf label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:5px;font-family:'DM Mono',monospace;}
-.lf select,.lf input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'Noto Sans JP',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;}
-.lf select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%237a6f65' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
-.lf select:focus,.lf input:focus{border-color:var(--accent);}
-.btn-login{width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:14px;font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;transition:background .2s,transform .15s;}
-.btn-login:hover{background:#b04509;transform:translateY(-1px);}
-.login-error{background:#fef2f2;border:1px solid #fca5a5;color:var(--danger);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:10px;display:none;text-align:center;}
 
 /* APP */
 #appScreen{display:none;min-height:100vh;}
@@ -228,6 +214,16 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 .hi-breakdown .row.total span:last-child { color: #7b1fa2 !important; }
 #buZaiTotalDisplay { color: #7b1fa2 !important; }
 .hi-breakdown .row span:last-child { color: #7b1fa2; }
+#annualReportPrintArea{ display:none; }
+@media print {
+  body * { visibility: hidden; }
+  #annualReportPrintArea, #annualReportPrintArea * { visibility: visible; }
+  #annualReportPrintArea {
+    display:block !important;
+    position:absolute; top:0; left:0; width:100%;
+    padding:24px; font-family:'DM Mono', monospace, sans-serif;
+  }
+}
 </style>
 <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjBonMsw5VKcshZxQWUB3dxfAEJ8McOCQ&libraries=places&language=ja&callback=initPlaceAutocomplete"></script>
 </head>
@@ -268,28 +264,6 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
   <div style="font-size:18px;font-weight:700;color:var(--text);" id="errorScreenTitle">専用URLからアクセスしてください</div>
   <div style="font-size:14px;color:var(--text2);" id="errorScreenBody">このページは直接開けません。<br>担当者から受け取ったURLをご利用ください。</div>
   <button onclick="location.reload()" style="margin-top:8px;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🔄 再読み込み</button>
-</div>
-<div id="loginScreen" style="display:none;">
-  <div class="login-box">
-    
-    <h1>案件完了報告フォーム</h1>
-    <p class="sub">担当者を選択してログインしてください</p>
-    <div class="lf">
-      <label>担当者名</label>
-      <select id="loginMember">
-        <option value="">-- 選択 --</option>
-        <option>船津匡広</option><option>藤井一也</option><option>石渡宏弥</option><option>築城智</option>
-        <option>佐野翔</option><option>北原暢人</option><option>中野草平</option><option>大森圭一郎</option>
-        <option value="admin">かえる</option>
-      </select>
-    </div>
-    <div class="lf">
-      <label>パスワード</label>
-      <input type="password" id="loginPass" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button class="btn-login" onclick="doLogin()">ログイン</button>
-    <div class="login-error" id="loginError"></div>
-  </div>
 </div>
 
 <!-- APP -->
@@ -342,7 +316,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 >
       </div>
       <div class="form-group">
-        <label class="fl">顧客名<span class="req">*</span></label>
+        <label class="fl">顧客名（請求先）<span class="req">*</span></label>
         <div id="clientDisplay" style="display:none;background:#f9f9f9;border:1.5px solid var(--accent);border-radius:8px;padding:10px 12px;cursor:pointer;position:relative;" onclick="clearClientSelection()">
           <div id="clientDisplayName" style="font-size:14px;font-weight:700;color:#222;"></div>
           <span style="position:absolute;top:8px;right:10px;font-size:12px;color:#aaa;">✕</span>
@@ -655,6 +629,50 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     <div id="dashContent"></div>
   </div>
 
+  <!-- 年間集計PDF 作成モーダル -->
+  <div id="annualReportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px;">📄 集計PDFを作成</div>
+
+      <div id="annualReportMemberWrap" style="margin-bottom:12px;display:none;">
+        <label style="font-size:12px;color:#888;">対象メンバー</label>
+        <select id="annualReportMember" style="width:100%;"></select>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#888;">集計単位</label>
+        <select id="annualReportRange" onchange="onReportRangeChange()" style="width:100%;">
+          <option value="year">年間（月別サマリー）</option>
+          <option value="month">月次（案件ごとの内訳）</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;color:#888;">対象年</label>
+        <select id="annualReportYear" style="width:100%;"></select>
+      </div>
+
+      <div id="annualReportMonthWrap" style="margin-bottom:16px;display:none;">
+        <label style="font-size:12px;color:#888;">対象月</label>
+        <select id="annualReportMonth" style="width:100%;">
+          <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+          <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+          <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeAnnualReport()" style="flex:1;padding:10px;border:1.5px solid #ccc;border-radius:8px;background:#fff;color:#555;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button onclick="generateAnnualReport()" style="flex:2;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">作成する</button>
+      </div>
+      <div id="annualReportMsg" style="margin-top:8px;font-size:12px;color:#c62828;"></div>
+    </div>
+  </div>
+
+  <!-- 印刷専用エリア（画面には出さず、印刷/PDF保存時のみ表示） -->
+  <div id="annualReportPrintArea"></div>
+
   <!-- 設定タブ（管理者のみ） -->
   <div id="tabSetting" class="content" style="display:none;">
 
@@ -735,6 +753,14 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
       <button class="btn-submit" style="margin-top:12px;" onclick="saveClientSettings()">💾 顧客を保存</button>
       <div id="clientSaveMsg" style="margin-top:8px;font-size:13px;color:#2e7d32;"></div>
     </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title"><span></span>貸付金管理</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px;">メンバーへの貸付金を登録できます。月々の天引き額を設定すると、毎月の計上額から自動で天引き計算されます（年間集計PDFに反映）。天引き額を空欄（0円）にしておけば、返済方法が未定の貸付を「メモ」として残すだけにできます。残高がなくなると自動的に天引きが止まります。</div>
+      <div id="loanSettingList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <button onclick="addLoanRow()" style="width:100%;padding:10px;border:1.5px dashed #aaa;border-radius:8px;background:none;font-size:14px;color:#555;cursor:pointer;">＋ 貸付金を追加</button>
+      <button class="btn-submit" style="margin-top:12px;" onclick="saveLoanSettings()">💾 貸付金を保存</button>
+      <div id="loanSaveMsg" style="margin-top:8px;font-size:13px;color:#2e7d32;"></div>
+    </div>
     </div><!-- /adminSettingArea -->
   </div>
 </div>
@@ -780,7 +806,7 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
 >
     </div>
     <div class="form-group">
-      <label class="fl">顧客名</label>
+      <label class="fl">顧客名（請求先）</label>
       <select id="eClient" onchange="onEClientChange()" style="width:100%;"></select>
       <!-- 書類作成チェック（編集用） -->
       <div class="tesuco-docs" id="eTesucoDocsArea" style="display:none;">
@@ -1681,6 +1707,10 @@ let memberRatesFromGAS = {}; // name -> rate
 let ALL_CLIENTS = []; // [{short, full, mitsumori, nohinshi, houkokusho, seikyusho}]
 let CLIENT_MAP = {};  // short -> client object
 
+// 貸付金マスタ（管理者のみ編集、GASから動的取得）
+let ALL_LOANS = []; // [{member, startMonth('yyyy-MM'), principal, monthly, memo}]
+let LOAN_MAP = {};  // member -> loan object（1人1件想定）
+
 const DEFAULT_WORKS    = ['漏水調査','排水詰まり除去作業','トイレ詰まり除去作業','養生作業','グリストラップ詰まり除去作業','給湯管一部改修','水栓交換作業','高圧洗浄作業','フレキ管交換作業','スピンドル交換作業'];
 const DEFAULT_BD_ITEMS = [
   { name:'作業費', defaultPrice:0 },
@@ -1762,7 +1792,7 @@ let editBreakdownRows = [];
 // ===== URLパラメータ自動ログイン（GASからメンバー取得後に実行） =====
 async function fetchMembers(retry){
   try {
-    const res = await fetch(GAS_URL + '?action=getMembers');
+    const res = await fetchWithTimeout(GAS_URL + '?action=getMembers', 15000);
     const json = await res.json();
     if(json.result === 'success'){
       MEMBER_CODES_MAP = {};
@@ -1789,7 +1819,7 @@ async function fetchMembers(retry){
 // ===== 顧客マスタ取得（GASから動的取得） =====
 async function fetchClients(){
   try {
-    const res = await fetch(GAS_URL + '?action=getClients');
+    const res = await fetchWithTimeout(GAS_URL + '?action=getClients', 15000);
     const json = await res.json();
     if(json.result === 'success'){
       ALL_CLIENTS = json.clients || [];
@@ -1819,6 +1849,193 @@ async function refreshClients(){
   renderClientCandidateList(document.getElementById('fClientSearch')?.value || '');
   buildSelect('eClient', lists.clients, '顧客名を選択');
   if(btn){ btn.disabled = false; btn.textContent = '🔄 顧客リストを更新'; }
+}
+
+// ===== 貸付金マスタ取得（GASから動的取得） =====
+async function fetchLoans(){
+  try {
+    const res = await fetchWithTimeout(GAS_URL + '?action=getLoans', 15000);
+    const json = await res.json();
+    if(json.result === 'success'){
+      ALL_LOANS = json.loans || [];
+      // メンバーごとにグループ化（1人が複数回の貸付を持てる）
+      LOAN_MAP = {};
+      ALL_LOANS.forEach(l => {
+        if(!LOAN_MAP[l.member]) LOAN_MAP[l.member] = { member: l.member, monthly: l.monthly || 0, entries: [] };
+        LOAN_MAP[l.member].entries.push({ month: l.startMonth, amount: l.principal, memo: l.memo || '' });
+        if(l.monthly) LOAN_MAP[l.member].monthly = l.monthly;
+      });
+      return true;
+    }
+  } catch(e) { console.warn('貸付金マスタ取得失敗:', e); }
+  return false;
+}
+
+// 指定メンバーの、指定年月(yyyy-MM)時点での天引き額・残高を計算
+// 複数回の貸付（それぞれ日付・金額）を積み上げ、毎月天引き額分だけ減っていく「借入残高台帳」方式
+function calcLoanDeduction(member, yyyymm){
+  const group = LOAN_MAP[member];
+  if(!group || !group.entries || !group.entries.length) return { deduction: 0, remainingAfter: 0 };
+
+  const entries = [...group.entries].filter(e => e.month && e.amount > 0).sort((a,b) => a.month.localeCompare(b.month));
+  if(!entries.length) return { deduction: 0, remainingAfter: 0 };
+
+  const monthly = group.monthly || 0;
+  const startMonth = entries[0].month;
+  if(yyyymm < startMonth) return { deduction: 0, remainingAfter: 0 };
+
+  let balance = 0;
+  let deduction = 0;
+  let cur = startMonth;
+  let guard = 0;
+  while(guard < 1200){ // 100年分の安全弁
+    guard++;
+    entries.forEach(e => { if(e.month === cur) balance += e.amount; });
+    const ded = monthly > 0 ? Math.min(monthly, balance) : 0;
+    balance = Math.max(0, balance - ded);
+    if(cur === yyyymm){ deduction = ded; break; }
+    const [cy, cm] = cur.split('-').map(Number);
+    let ny = cy, nm = cm + 1;
+    if(nm > 12){ nm = 1; ny++; }
+    cur = ny + '-' + String(nm).padStart(2, '0');
+  }
+  return { deduction, remainingAfter: balance };
+}
+
+// ===== 貸付金管理（管理者設定画面） =====
+// loanGroups: [{ member, monthly, entries: [{month, amount, memo}, ...] }, ...]
+let loanGroups = [];
+
+function renderLoanSetting(){
+  // ALL_LOANS（フラットな行）をメンバーごとにグループ化
+  const byMember = {};
+  ALL_LOANS.forEach(l => {
+    if(!byMember[l.member]) byMember[l.member] = { member: l.member, monthly: l.monthly || 0, entries: [] };
+    byMember[l.member].entries.push({ month: l.startMonth, amount: l.principal, memo: l.memo || '' });
+    if(l.monthly) byMember[l.member].monthly = l.monthly;
+  });
+  loanGroups = Object.values(byMember).map(g => ({
+    ...g,
+    entries: g.entries.sort((a,b) => (a.month||'').localeCompare(b.month||''))
+  }));
+  renderLoanSettingList();
+}
+
+function renderLoanSettingList(){
+  const list = document.getElementById('loanSettingList');
+  if(!list) return;
+  if(!loanGroups.length){
+    list.innerHTML = `<div style="font-size:12px;color:#aaa;padding:4px;">登録されている貸付金はありません</div>`;
+    return;
+  }
+  list.innerHTML = loanGroups.map((g,gi) => {
+    const totalPrincipal = g.entries.reduce((s,e)=>s+Number(e.amount||0),0);
+    const remaining = g.member ? calcLoanRemainingNowForGroup(g) : 0;
+    return `
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:10px;padding:10px;margin-bottom:4px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <select onchange="loanGroups[${gi}].member=this.value; renderLoanSettingList();" style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-weight:700;">
+          <option value="">-- メンバー --</option>
+          ${ALL_MEMBERS.map(m=>`<option value="${m}" ${g.member===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+        <button onclick="removeLoanGroup(${gi})" style="padding:7px 10px;background:#ffebee;border:none;border-radius:6px;color:#c62828;cursor:pointer;">グループ削除</button>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;color:#888;">月々の天引き額（円・全ての貸付をまとめて天引き）</label>
+        <input type="number" value="${g.monthly||''}" oninput="loanGroups[${gi}].monthly=Number(this.value); renderLoanSettingList();"
+          style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;">
+      </div>
+
+      <div style="font-size:11px;color:#888;margin-bottom:4px;">貸付の内訳</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+        ${g.entries.map((e,ei) => `
+          <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:6px;">
+            <input type="month" value="${e.month||''}" oninput="loanGroups[${gi}].entries[${ei}].month=this.value"
+              style="flex:1.2;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+            <input type="number" placeholder="金額" value="${e.amount||''}" oninput="loanGroups[${gi}].entries[${ei}].amount=Number(this.value); renderLoanSettingList();"
+              style="flex:1;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+            <input type="text" placeholder="メモ" value="${e.memo||''}" oninput="loanGroups[${gi}].entries[${ei}].memo=this.value"
+              style="flex:1.2;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
+            <button onclick="removeLoanEntry(${gi},${ei})" style="padding:5px 8px;background:#ffebee;border:none;border-radius:6px;color:#c62828;cursor:pointer;font-size:12px;">×</button>
+          </div>
+        `).join('')}
+      </div>
+      <button onclick="addLoanEntry(${gi})" style="width:100%;padding:8px;border:1.5px dashed #bbb;border-radius:8px;background:none;font-size:12px;color:#666;cursor:pointer;margin-bottom:8px;">＋ この人に貸付を追加（例：8月に10万円）</button>
+
+      <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;border-top:1px solid #e5e5e5;padding-top:8px;">
+        <span style="color:#555;">貸付合計: ¥${totalPrincipal.toLocaleString()}</span>
+        <span style="color:#c62828;">現在の残高（目安）: ¥${remaining.toLocaleString()}</span>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+function calcLoanRemainingNowForGroup(g){
+  const now = new Date();
+  const yyyymm = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const savedMap = LOAN_MAP[g.member];
+  LOAN_MAP[g.member] = g; // 編集中の内容で一時的に計算
+  const { remainingAfter } = calcLoanDeduction(g.member, yyyymm);
+  if(savedMap) LOAN_MAP[g.member] = savedMap; else delete LOAN_MAP[g.member];
+  return remainingAfter;
+}
+
+function addLoanRow(){
+  const now = new Date();
+  const yyyymm = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  loanGroups.push({ member:'', monthly:0, entries: [{month: yyyymm, amount:0, memo:''}] });
+  renderLoanSettingList();
+}
+
+function addLoanEntry(gi){
+  const now = new Date();
+  const yyyymm = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  loanGroups[gi].entries.push({ month: yyyymm, amount: 0, memo: '' });
+  renderLoanSettingList();
+}
+
+function removeLoanEntry(gi, ei){
+  loanGroups[gi].entries.splice(ei, 1);
+  renderLoanSettingList();
+}
+
+function removeLoanGroup(gi){
+  loanGroups.splice(gi, 1);
+  renderLoanSettingList();
+}
+
+async function saveLoanSettings(){
+  const btn = document.querySelector('[onclick="saveLoanSettings()"]');
+  if(btn){ btn.disabled=true; btn.textContent='保存中...'; }
+
+  // グループ構造をフラットな行（GASのシート形式）に変換
+  const loans = [];
+  loanGroups.forEach(g => {
+    if(!g.member) return;
+    g.entries.forEach(e => {
+      if(!e.month || !(e.amount > 0)) return;
+      loans.push({ member: g.member, startMonth: e.month, principal: e.amount, monthly: g.monthly || 0, memo: e.memo || '' });
+    });
+  });
+
+  try{
+    const encoded = encodeURIComponent(JSON.stringify({action:'saveLoans', loans}));
+    const res = await fetch(GAS_URL+'?data='+encoded);
+    const json = await res.json();
+    if(json.result==='success'){
+      await fetchLoans();
+      renderLoanSetting();
+      document.getElementById('loanSaveMsg').textContent = '✅ 保存しました！';
+      setTimeout(()=>document.getElementById('loanSaveMsg').textContent='',2000);
+    } else {
+      document.getElementById('loanSaveMsg').textContent = '⚠️ 保存失敗: '+(json.message||'不明');
+    }
+  }catch(e){
+    document.getElementById('loanSaveMsg').textContent = '⚠️ 保存失敗: '+e.message;
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='💾 貸付金を保存'; }
+  }
 }
 
 // ===== 自分のレコード取得（ログイン直後の重複fetchをまとめる） =====
@@ -1867,14 +2084,23 @@ async function getMyRecords(force){
   }
 }
 
+// ===== マスタデータ（メンバー・顧客・貸付金）の取得を一元管理 =====
+// URLログイン・パスワードログイン、どちらの経路でも確実に取得完了を待てるようにする
+let masterDataPromise = null;
+function ensureMasterData(){
+  if(!masterDataPromise){
+    masterDataPromise = Promise.all([fetchMembers(), fetchClients(), fetchLoans()]);
+  }
+  return masterDataPromise;
+}
+
 async function checkUrlLogin(){
-  // GASからメンバー・顧客マスタを並行取得
-  const [membersOk] = await Promise.all([fetchMembers(), fetchClients()]);
+  // GASからメンバー・顧客マスタ・貸付金マスタを並行取得
+  const [membersOk] = await ensureMasterData();
 
   const params = new URLSearchParams(window.location.search);
   const code = params.get('member');
   if(!code || !MEMBER_CODES_MAP[code]){
-    document.getElementById('loginScreen').style.display='none';
     document.getElementById('appScreen').style.display='none';
     if(code && !membersOk){
       // ★通信不良でメンバー情報が取得できなかった場合は、URL不正と区別して案内
@@ -1887,7 +2113,7 @@ async function checkUrlLogin(){
   const member = MEMBER_CODES_MAP[code];
   currentUser = member;
   updateDocFilterVisibility();   // ←追加
-  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('errorScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
   document.getElementById('mainHeader').style.display='flex';
   document.getElementById('mainTabs').style.display='flex';
@@ -2868,25 +3094,258 @@ function calcSubtotal(){
   return net;
 }
 
-// ===== ログイン =====
-function doLogin(){
-  const member=document.getElementById('loginMember').value;
-  const pass=document.getElementById('loginPass').value;
-  if(!member){showLoginError('担当者を選択してください');return;}
-  if(PASSWORDS[member]!==pass){showLoginError('パスワードが違います');return;}
-  currentUser=member;
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appScreen').style.display='block';
-  document.getElementById('mainHeader').style.display='flex';
-  document.getElementById('mainTabs').style.display='flex';
-  document.getElementById('userBadge').textContent=member==='admin'?'👑 かえる':member;
-  // 日付は空白のまま
-  initSelects(); renderBreakdown(); renderWorkCandidateList('');
+// ===== ログアウト =====
+// URL自動ログインのみの構成のため、ログアウトはURLパラメータを外して再読み込みする
+// （再読み込み後は checkUrlLogin が「専用URLからアクセスしてください」の案内画面を表示する）
+function doLogout(){
+  currentUser = null;
+  location.href = location.pathname;
 }
-function showLoginError(msg){ const el=document.getElementById('loginError'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
-function doLogout(){ currentUser=null; document.getElementById('appScreen').style.display='none'; document.getElementById('mainHeader').style.display='none'; document.getElementById('mainTabs').style.display='none'; document.getElementById('loginScreen').style.display='flex'; document.getElementById('loginPass').value=''; document.getElementById('loginMember').value=''; breakdownRows=[]; }
 
 // ===== タブ =====
+// ===== 年間集計PDF（確定申告用の年間売上・経費集計） =====
+function onReportRangeChange(){
+  const range = document.getElementById('annualReportRange').value;
+  document.getElementById('annualReportMonthWrap').style.display = (range === 'month') ? 'block' : 'none';
+}
+
+
+function openAnnualReport(){
+  const isAdmin = currentUser === 'admin';
+  const memberWrap = document.getElementById('annualReportMemberWrap');
+  const memberSel = document.getElementById('annualReportMember');
+
+  if(isAdmin){
+    memberWrap.style.display = 'block';
+    memberSel.innerHTML = ALL_MEMBERS.map(m=>`<option value="${m}">${m}</option>`).join('');
+  } else {
+    memberWrap.style.display = 'none';
+  }
+
+  const yearSel = document.getElementById('annualReportYear');
+  const thisYear = new Date().getFullYear();
+  const years = [thisYear, thisYear-1, thisYear-2];
+  yearSel.innerHTML = years.map(y=>`<option value="${y}">${y}年</option>`).join('');
+
+  document.getElementById('annualReportMsg').textContent = '';
+  document.getElementById('annualReportRange').value = 'year';
+  document.getElementById('annualReportMonthWrap').style.display = 'none';
+  document.getElementById('annualReportModal').style.display = 'flex';
+}
+
+function closeAnnualReport(){
+  document.getElementById('annualReportModal').style.display = 'none';
+}
+
+async function generateAnnualReport(){
+  const isAdmin = currentUser === 'admin';
+  const member = isAdmin ? document.getElementById('annualReportMember').value : currentUser;
+  const range = document.getElementById('annualReportRange').value;
+  const year = document.getElementById('annualReportYear').value;
+  const month = document.getElementById('annualReportMonth').value;
+  const msgEl = document.getElementById('annualReportMsg');
+
+  if(!member){ msgEl.textContent = '対象メンバーを選択してください'; return; }
+
+  msgEl.textContent = '';
+  try{
+    let records;
+    if(!isAdmin && member === currentUser){
+      records = await getMyRecords();
+    } else {
+      const res = await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(member));
+      const json = await res.json();
+      records = json.records || [];
+    }
+
+    const rateLabel = memberRates && memberRates[member]!=null ? memberRates[member]+'%' : '-';
+    const todayStr = new Date().toLocaleDateString('ja-JP');
+
+    if(range === 'month'){
+      // ===== 月次：案件ごとの内訳 =====
+      const mm = String(month).padStart(2,'0');
+      const valid = (records||[]).filter(r=>{
+        const memo = String(r.memo||'');
+        if(memo.startsWith('【継続中】')) return false;
+        return String(r.date||'').slice(0,7) === `${year}-${mm}`;
+      }).sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+
+      if(!valid.length){
+        msgEl.textContent = 'この月のデータが見つかりませんでした';
+        return;
+      }
+
+      const totalSubtotal = valid.reduce((s,r)=>s+getDisplaySubtotal(r),0);
+      const totalBuZai     = valid.reduce((s,r)=>s+Number(r.buZaiTotal||0),0);
+      const totalKeijo     = valid.reduce((s,r)=>s+Number(r.keijo||0),0);
+      const loanCalc = calcLoanDeduction(member, `${year}-${mm}`);
+      const loanDeduction = loanCalc.deduction;
+      const netPay = totalKeijo - loanDeduction;
+
+      const rowsHtml = valid.map(r=>`
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #ccc;">${r.date}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;">${r.client||''}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;">${r.work||''}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${getDisplaySubtotal(r).toLocaleString()}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${Number(r.buZaiTotal||0).toLocaleString()}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${Number(r.keijo||0).toLocaleString()}</td>
+        </tr>
+      `).join('');
+
+      const loanRowsHtml = loanDeduction > 0 ? `
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #ccc;">貸付金天引き</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#c62828;">−¥${loanDeduction.toLocaleString()}</td>
+        </tr>
+        <tr style="font-weight:700;">
+          <td style="padding:6px 8px;border:1px solid #ccc;">差引支払額</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${netPay.toLocaleString()}</td>
+        </tr>
+      ` : '';
+
+      document.getElementById('annualReportPrintArea').innerHTML = `
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${year}年${Number(month)}月 月次売上・経費集計表</div>
+        <div style="font-size:13px;color:#555;margin-bottom:16px;">担当: ${member}　配分率: ${rateLabel}　作成日: ${todayStr}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f0f0f0;">
+              <th style="padding:6px 8px;border:1px solid #ccc;">日付</th>
+              <th style="padding:6px 8px;border:1px solid #ccc;">顧客</th>
+              <th style="padding:6px 8px;border:1px solid #ccc;">作業内容</th>
+              <th style="padding:6px 8px;border:1px solid #ccc;">売上</th>
+              <th style="padding:6px 8px;border:1px solid #ccc;">部材費</th>
+              <th style="padding:6px 8px;border:1px solid #ccc;">計上額</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot>
+            <tr style="background:#f0f0f0;font-weight:700;">
+              <td style="padding:6px 8px;border:1px solid #ccc;" colspan="3">合計（${valid.length}件）</td>
+              <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalSubtotal.toLocaleString()}</td>
+              <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalBuZai.toLocaleString()}</td>
+              <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalKeijo.toLocaleString()}</td>
+            </tr>
+          </tfoot>
+        </table>
+        ${loanDeduction > 0 ? `
+        <table style="width:60%;border-collapse:collapse;font-size:13px;margin-top:10px;margin-left:auto;">
+          <tbody>${loanRowsHtml}</tbody>
+        </table>
+        ` : ''}
+        <div style="font-size:11px;color:#888;margin-top:16px;">
+          ※ 本表は確定申告の参考資料です。継続中（未確定）の案件は含まれていません。分配案件は、自分の計上額に換算した金額で表示しています。<br>
+          ※ 本表は「かえる案件報告」に登録された売上・経費のみの集計です。車両費・通信費・工具費などのその他の経費や、社会保険料控除・医療費控除などの各種控除は含まれていません。確定申告の際は、本表と合わせてご自身でご確認ください。<br>
+          参考：国税庁 確定申告特集　https://www.nta.go.jp/taxes/shiraberu/shinkoku/tokushu/index.htm
+        </div>
+      `;
+
+      closeAnnualReport();
+      setTimeout(()=>{ window.print(); }, 100);
+      return;
+    }
+
+    // ===== 年間：月別サマリー =====
+    const valid = (records||[]).filter(r=>{
+      const memo = String(r.memo||'');
+      if(memo.startsWith('【継続中】')) return false;
+      return String(r.date||'').slice(0,4) === String(year);
+    });
+
+    if(!valid.length){
+      msgEl.textContent = 'この年のデータが見つかりませんでした';
+      return;
+    }
+
+    const byMonth = {};
+    for(let m=1;m<=12;m++){ byMonth[m] = { count:0, subtotal:0, buZai:0, keijo:0 }; }
+    valid.forEach(r=>{
+      const mm = Number(String(r.date).slice(5,7));
+      if(!byMonth[mm]) return;
+      byMonth[mm].count++;
+      byMonth[mm].subtotal += getDisplaySubtotal(r);   // 分配時は自分の取り分に換算された金額
+      byMonth[mm].buZai    += Number(r.buZaiTotal||0);
+      byMonth[mm].keijo    += Number(r.keijo||0);
+    });
+
+    const totalSubtotal = valid.reduce((s,r)=>s+getDisplaySubtotal(r),0);
+    const totalBuZai     = valid.reduce((s,r)=>s+Number(r.buZaiTotal||0),0);
+    const totalKeijo     = valid.reduce((s,r)=>s+Number(r.keijo||0),0);
+    const totalCount     = valid.length;
+    let totalLoanDeduction = 0;
+
+    const hasLoan = !!(LOAN_MAP[member] && LOAN_MAP[member].monthly > 0);
+
+    const rowsHtml = Object.keys(byMonth).map(m=>{
+      const d = byMonth[m];
+      const mmStr = `${year}-${String(m).padStart(2,'0')}`;
+      const loanCalc = calcLoanDeduction(member, mmStr);
+      totalLoanDeduction += loanCalc.deduction;
+      const netPay = d.keijo - loanCalc.deduction;
+      return `
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${m}月</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${d.count}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${d.subtotal.toLocaleString()}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${d.buZai.toLocaleString()}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${d.keijo.toLocaleString()}</td>
+          ${hasLoan ? `
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:${loanCalc.deduction>0?'#c62828':'#aaa'};">${loanCalc.deduction>0?'−¥'+loanCalc.deduction.toLocaleString():'-'}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">¥${netPay.toLocaleString()}</td>
+          ` : ''}
+        </tr>
+      `;
+    }).join('');
+
+    const totalNetPay = totalKeijo - totalLoanDeduction;
+
+    document.getElementById('annualReportPrintArea').innerHTML = `
+      <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${year}年 年間売上・経費集計表</div>
+      <div style="font-size:13px;color:#555;margin-bottom:16px;">担当: ${member}　配分率: ${rateLabel}　作成日: ${todayStr}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f0f0f0;">
+            <th style="padding:6px 8px;border:1px solid #ccc;">月</th>
+            <th style="padding:6px 8px;border:1px solid #ccc;">件数</th>
+            <th style="padding:6px 8px;border:1px solid #ccc;">売上（小計）</th>
+            <th style="padding:6px 8px;border:1px solid #ccc;">部材費</th>
+            <th style="padding:6px 8px;border:1px solid #ccc;">計上額</th>
+            ${hasLoan ? `
+            <th style="padding:6px 8px;border:1px solid #ccc;">貸付金天引き</th>
+            <th style="padding:6px 8px;border:1px solid #ccc;">差引支払額</th>
+            ` : ''}
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot>
+          <tr style="background:#f0f0f0;font-weight:700;">
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">合計</td>
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${totalCount}</td>
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalSubtotal.toLocaleString()}</td>
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalBuZai.toLocaleString()}</td>
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalKeijo.toLocaleString()}</td>
+            ${hasLoan ? `
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">−¥${totalLoanDeduction.toLocaleString()}</td>
+            <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">¥${totalNetPay.toLocaleString()}</td>
+            ` : ''}
+          </tr>
+        </tfoot>
+      </table>
+      <div style="font-size:11px;color:#888;margin-top:16px;">
+        ※ 本表は確定申告の参考資料です。継続中（未確定）の案件は含まれていません。分配案件は、自分の計上額に換算した金額で集計しています。${hasLoan ? '貸付金天引きは貸付金設定に基づく概算です。' : ''}<br>
+        ※ 本表は「かえる案件報告」に登録された売上・経費のみの集計です。車両費・通信費・工具費などのその他の経費や、社会保険料控除・医療費控除などの各種控除は含まれていません。確定申告の際は、本表と合わせてご自身でご確認ください。<br>
+        参考：国税庁 確定申告特集　https://www.nta.go.jp/taxes/shiraberu/shinkoku/tokushu/index.htm
+      </div>
+    `;
+
+    closeAnnualReport();
+    setTimeout(()=>{ window.print(); }, 100);
+
+  }catch(e){
+    msgEl.textContent = '作成に失敗しました: ' + e.message;
+  }
+}
+
 function switchTab(tab,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
   document.getElementById('tabInput').style.display   = tab==='input'   ?'block':'none';
@@ -2894,7 +3353,7 @@ function switchTab(tab,btn){
   document.getElementById('tabSetting').style.display = tab==='setting' ?'block':'none';
   document.getElementById('tabDash').style.display    = tab==='dash'    ?'block':'none';
   if(tab==='history') loadHistory();
-  if(tab==='setting'){ renderListEditor(); renderMemberSetting(); renderRateSetting(); renderClientSetting(); }
+  if(tab==='setting'){ renderListEditor(); renderMemberSetting(); renderRateSetting(); renderClientSetting(); renderLoanSetting(); }
   if(tab==='dash') loadDash();
 }
 
@@ -3175,6 +3634,18 @@ if(nohinRow) nohinRow.style.display = 'flex';
 }
 
 // ===== 履歴読み込み =====
+// ===== タイムアウト付きfetch =====
+// 通信がハング（応答なしで固まる）した場合に、無限に待ち続けないようにする
+async function fetchWithTimeout(url, timeoutMs){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 15000);
+  try{
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadHistory(){
   const list=document.getElementById('historyList');
   loadStart = Date.now();
@@ -3191,12 +3662,12 @@ async function loadHistory(){
   let records=[];
   if(isAdmin){
     // 管理者：getAllRecordsで1回のスプレッドシートアクセスにまとめる
-    const res=await fetch(GAS_URL+'?action=getAllRecords');
+    const res=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 15000);
     const json=await res.json();
     const all=json.all||{};
     records=Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
   } else {
-    const res=await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
+    const res=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 15000);
     const json=await res.json();
     records=(json.records||[]).map(r=>({...r, member:currentUser, ownerMember:currentUser}));
   }
@@ -3231,13 +3702,13 @@ async function loadHistory(){
       // 再取得
       try{
         if(isAdmin){
-          const res2=await fetch(GAS_URL+'?action=getAllRecords');
+          const res2=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 15000);
           const json2=await res2.json();
           const all2=json2.all||{};
           const retry=Object.keys(all2).flatMap(m => (all2[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
           if(retry.length>0) records=retry;
         } else {
-          const res2=await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
+          const res2=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 15000);
           const json2=await res2.json();
           if((json2.records||[]).length>0) records=json2.records.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
         }
@@ -3250,7 +3721,9 @@ async function loadHistory(){
     });
     applySearch();
   }catch(e){
-    list.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>読み込みエラー：${e.message}</div>`;
+    const isTimeout = e.name === 'AbortError';
+    const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
+    list.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>読み込みエラー：${msg}<br><span style="font-size:12px;color:#999;display:block;margin-top:8px;">通信が不安定な場所にいるか、Googleサーバー側が一時的に混み合っている可能性があります。少し待ってから再読み込みしてください。</span><button onclick="loadHistory()" style="margin-top:12px;padding:8px 16px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;">🔄 再読み込み</button></div>`;
     ['searchAll','searchDone','searchOngoing'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=false;
     });
@@ -4529,7 +5002,7 @@ async function saveEdit(){
           if(mem===currentUser) continue;
           const subRec = {
   action:'add',
-  id: Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)+'_'+mem,
+  id: updated.id, // ★分配元（editingRecord）と同じIDにする（削除時の連動処理を効かせるため）
   member:mem,
   date:updated.date,
   client:updated.client,
@@ -4673,16 +5146,23 @@ window.addEventListener('DOMContentLoaded', ()=>{ initPlaceAutocomplete(); });
 
 // ページ読み込み時にURL確認
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // URLにmemberコードがある場合はloginScreenを最初から非表示
-  const params = new URLSearchParams(window.location.search);
-  if(!params.get('member')){
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
-
-  await checkUrlLogin();
+  // ★起動処理が万一長引いても、起動画面が永遠に表示され続けないようにする保険（最大20秒）
+  const TIMEOUT_SENTINEL = Symbol('startup-timeout');
+  const result = await Promise.race([
+    checkUrlLogin(),
+    new Promise(resolve => setTimeout(() => resolve(TIMEOUT_SENTINEL), 20000))
+  ]);
 
   const loading = document.getElementById('startupLoading');
   if(loading) loading.style.display = 'none';
+
+  if(result === TIMEOUT_SENTINEL){
+    // 20秒経っても終わらない場合は、空白画面にせずエラー画面（再読み込みボタン付き）を表示
+    document.getElementById('appScreen').style.display='none';
+    document.getElementById('errorScreenTitle').textContent = '読み込みに時間がかかっています';
+    document.getElementById('errorScreenBody').innerHTML = '通信状況が不安定な可能性があります。<br>電波の良い場所で再読み込みしてください。';
+    document.getElementById('errorScreen').style.display='flex';
+  }
 });
 // ===== 管理者ダッシュボード =====
 let dashAllRecords = [];
@@ -4707,7 +5187,7 @@ async function loadDash(){
     // ① まずサマリーを取得して月ボタンを生成（軽い）
     let summaryOk = false;
     try{
-      const res = await fetch(GAS_URL+'?action=getSummary');
+      const res = await fetchWithTimeout(GAS_URL+'?action=getSummary', 15000);
       const json = await res.json();
       console.log('getSummary raw json =', json);
       if(json.result==='success' && json.summary && Object.keys(json.summary).length > 0){
@@ -4724,16 +5204,22 @@ async function loadDash(){
         dashMonth = months.includes(thisMonth) ? thisMonth : months[0];
       }
       // 月ボタン描画
-      document.getElementById('dashMonthBtns').innerHTML = months.map(m=>`
+      renderDashMonthBtns(months.map(m=>`
         <button onclick="selectDashMonth('${m}')" style="padding:7px 16px;border-radius:20px;border:1.5px solid ${m===dashMonth?'#2e7d32':'#ccc'};background:${m===dashMonth?'#2e7d32':'white'};color:${m===dashMonth?'white':'#555'};font-size:13px;font-weight:${m===dashMonth?'700':'400'};cursor:pointer;white-space:nowrap;">
           ${m===thisMonth?'📅 ':''}${m.replace('-','年')}月
-        </button>`).join('');
+        </button>`).join(''));
     }
     // summaryOk=falseの場合はloadDashMonth内で全件取得して月ボタンも生成する
   }
 
   // ② 選択月のデータを取得
   await loadDashMonth();
+}
+
+// 月別ボタンの末尾に「PDF作成」ボタンを1つ添えて描画する共通ヘルパー
+function renderDashMonthBtns(monthButtonsHtml){
+  const pdfBtn = `<button onclick="openAnnualReport()" style="padding:7px 16px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📄 PDF</button>`;
+  document.getElementById('dashMonthBtns').innerHTML = monthButtonsHtml + pdfBtn;
 }
 
 async function loadDashMonth(){
@@ -4747,7 +5233,7 @@ async function loadDashMonth(){
       // 選択月のみ取得（月フィルター付き）
       let gotAll = false;
       try{
-        const res = await fetch(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth));
+        const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth), 15000);
         const json = await res.json();
         const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
         if(ok && json.all && typeof json.all==='object'){
@@ -4763,7 +5249,7 @@ async function loadDashMonth(){
       if(!gotAll){
         console.log('Fallback: getRecords per member');
         const fetches = [...ALL_MEMBERS, 'admin'].map(m=>
-          fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m))
+          fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m), 15000)
             .then(r=>r.json())
             .then(j=>{ (j.records||[]).forEach(r=>{ r.member=m; all.push(r); }); })
             .catch(()=>{})
@@ -4771,12 +5257,14 @@ async function loadDashMonth(){
         await Promise.all(fetches);
       }
     } else {
-      const res = await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
+      const res = await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 15000);
       const json = await res.json();
       if(json.result==='success') json.records.forEach(r=>{ r.member=currentUser; all.push(r); });
     }
   }catch(e){
-    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗: '+e.message+'</div></div>';
+    const isTimeout = e.name === 'AbortError';
+    const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
+    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗：'+msg+'<br><button onclick="loadDashMonth()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 再読み込み</button></div></div>';
     return;
   }
 
@@ -4785,7 +5273,7 @@ async function loadDashMonth(){
   if(all.length === 0){
     // メンバー側は月ボタンをここで生成
     if(!isAdminDash){
-      document.getElementById('dashMonthBtns').innerHTML = '';
+      renderDashMonthBtns('');
     }
     document.getElementById('dashContent').innerHTML = '<div class="card"><div style="color:#aaa;font-size:13px;text-align:center;padding:20px;">データがありません</div></div>';
     return;
@@ -4800,10 +5288,10 @@ async function loadDashMonth(){
     if(!dashMonth || !allMonthsFromData.includes(dashMonth)){
       dashMonth = allMonthsFromData.includes(thisMonthBtn) ? thisMonthBtn : (allMonthsFromData[0]||'');
     }
-    document.getElementById('dashMonthBtns').innerHTML = allMonthsFromData.map(m=>`
+    renderDashMonthBtns(allMonthsFromData.map(m=>`
       <button onclick="selectDashMonth('${m}')" style="padding:7px 16px;border-radius:20px;border:1.5px solid ${m===dashMonth?'#2e7d32':'#ccc'};background:${m===dashMonth?'#2e7d32':'white'};color:${m===dashMonth?'white':'#555'};font-size:13px;font-weight:${m===dashMonth?'700':'400'};cursor:pointer;white-space:nowrap;">
         ${m===thisMonthBtn?'📅 ':''}${m.replace('-','年')}月
-      </button>`).join('');
+      </button>`).join(''));
     // サマリーも補完しておく（次回の月切替で使う）
     if(isAdminDash) allMonthsFromData.forEach(m=>{ if(!dashSummary[m]) dashSummary[m]={}; });
   }
@@ -4824,10 +5312,10 @@ async function selectDashMonth(m){
   // 管理者：月ボタンのアクティブ状態を再描画（ボタン一覧はsummaryから再生成）
   if(isAdminDash){
     const months = Object.keys(dashSummary).sort().reverse();
-    document.getElementById('dashMonthBtns').innerHTML = months.map(mm=>`
+    renderDashMonthBtns(months.map(mm=>`
       <button onclick="selectDashMonth('${mm}')" style="padding:7px 16px;border-radius:20px;border:1.5px solid ${mm===m?'#2e7d32':'#ccc'};background:${mm===m?'#2e7d32':'white'};color:${mm===m?'white':'#555'};font-size:13px;font-weight:${mm===m?'700':'400'};cursor:pointer;white-space:nowrap;">
         ${mm===thisMonth?'📅 ':''}${mm.replace('-','年')}月
-      </button>`).join('');
+      </button>`).join(''));
   }
   await loadDashMonth();
 }
@@ -4848,6 +5336,8 @@ const keijo = doneRecs.reduce((s,r)=>s+getKeijo(r),0);
     const mRecs = allMyDone.filter(r => getMonthKey(r.date) === m);
     const mSub  = mRecs.reduce((s,r)=>s+getDisplaySubtotal(r),0);
     const mKeijo= mRecs.reduce((s,r)=>s+getKeijo(r),0);
+    const mLoanCalc = calcLoanDeduction(currentUser, m);
+    const mLoanDed = mLoanCalc.deduction;
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;">
       <div>
         <span style="font-size:14px;font-weight:${m===dashMonth?'700':'400'};">${m.replace('-','年')}月</span>
@@ -4857,6 +5347,7 @@ const keijo = doneRecs.reduce((s,r)=>s+getKeijo(r),0);
       <div style="text-align:right;">
         <div style="font-family:'DM Mono',monospace;font-weight:700;color:#2e7d32;">¥${mKeijo.toLocaleString()}</div>
         <div style="font-size:12px;color:#888;">小計 ¥${mSub.toLocaleString()}</div>
+        ${mLoanDed>0?`<div style="font-size:11px;color:#c62828;">－貸付金天引き ¥${mLoanDed.toLocaleString()}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -4886,10 +5377,24 @@ const bz = Number(r.buZaiTotal||0);
       +'</div>';
   }).join('');
 
+  const loanCalc = calcLoanDeduction(currentUser, dashMonth);
+  const loanDeduction = loanCalc.deduction;
+  const netPay = keijo - loanDeduction;
+
   document.getElementById('dashContent').innerHTML = `
     <div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;">
       <div style="font-size:13px;opacity:.8;margin-bottom:6px;">📊 ${dashMonth.replace('-','年')}月 計上額（配分率${rate}%・${doneRecs.length}件${ongoingCount?'・継続中'+ongoingCount+'件':''}）</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;">¥${keijo.toLocaleString()}</div>
+      ${loanDeduction>0?`
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,.25);">
+        <span style="font-size:12px;opacity:.8;">－ 貸付金天引き</span>
+        <span style="font-family:'DM Mono',monospace;font-size:15px;opacity:.9;">－¥${loanDeduction.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;">
+        <span style="font-size:13px;font-weight:700;">差引支払額</span>
+        <span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;">¥${netPay.toLocaleString()}</span>
+      </div>
+      `:''}
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,.25);">
         <span style="font-size:12px;opacity:.7;">税込（10%）</span>
         <span style="font-family:'DM Mono',monospace;font-size:15px;opacity:.85;">¥${Math.round(keijo*1.1).toLocaleString()}</span>
@@ -4968,6 +5473,9 @@ function renderDash(){
     if(!d||d.subtotal===0) return '';
     const kaisha = d.subtotal - d.keijo;
     const rate = Number(memberRates[m] ?? 0);
+    const mLoanCalc = calcLoanDeduction(m, dashMonth);
+    const mLoanDed = mLoanCalc.deduction;
+    const mNetPay = d.keijo - mLoanDed;
     return `<div style="padding:10px 0;border-bottom:1px solid #f0f0f0;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <span style="font-weight:700;font-size:15px;">${m==='admin'?'👑 かえる':m} <span style="font-size:11px;color:#888;font-weight:400;">(${rate}%)</span></span>
@@ -4977,7 +5485,9 @@ function renderDash(){
         <span style="background:#e8f5e9;color:#2e7d32;padding:3px 10px;border-radius:20px;font-weight:700;">計上 ¥${d.keijo.toLocaleString()}</span>
         <span style="background:#fce4ec;color:#c62828;padding:3px 10px;border-radius:20px;font-weight:700;">会社 ¥${kaisha.toLocaleString()}</span>
         ${m!=='admin'?`<span style="background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:20px;font-weight:700;">振込 ¥${Math.floor(d.keijo*1.1).toLocaleString()}</span>`:''}
+        ${mLoanDed>0?`<span style="background:#fff3e0;color:#e65100;padding:3px 10px;border-radius:20px;font-weight:700;">－貸付金 ¥${mLoanDed.toLocaleString()}</span>`:''}
       </div>
+      ${mLoanDed>0?`<div style="font-size:12px;color:#e65100;margin-top:4px;">差引支払額（振込前）: ¥${mNetPay.toLocaleString()}</div>`:''}
     </div>`;
   }).join('');
 
