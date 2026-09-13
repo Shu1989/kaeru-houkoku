@@ -1792,7 +1792,7 @@ let editBreakdownRows = [];
 // ===== URLパラメータ自動ログイン（GASからメンバー取得後に実行） =====
 async function fetchMembers(retry){
   try {
-    const res = await fetchWithTimeout(GAS_URL + '?action=getMembers', 15000);
+    const res = await fetchWithTimeout(GAS_URL + '?action=getMembers', 60000);
     const json = await res.json();
     if(json.result === 'success'){
       MEMBER_CODES_MAP = {};
@@ -1819,7 +1819,7 @@ async function fetchMembers(retry){
 // ===== 顧客マスタ取得（GASから動的取得） =====
 async function fetchClients(){
   try {
-    const res = await fetchWithTimeout(GAS_URL + '?action=getClients', 15000);
+    const res = await fetchWithTimeout(GAS_URL + '?action=getClients', 60000);
     const json = await res.json();
     if(json.result === 'success'){
       ALL_CLIENTS = json.clients || [];
@@ -1854,7 +1854,7 @@ async function refreshClients(){
 // ===== 貸付金マスタ取得（GASから動的取得） =====
 async function fetchLoans(){
   try {
-    const res = await fetchWithTimeout(GAS_URL + '?action=getLoans', 15000);
+    const res = await fetchWithTimeout(GAS_URL + '?action=getLoans', 60000);
     const json = await res.json();
     if(json.result === 'success'){
       ALL_LOANS = json.loans || [];
@@ -3662,12 +3662,12 @@ async function loadHistory(){
   let records=[];
   if(isAdmin){
     // 管理者：getAllRecordsで1回のスプレッドシートアクセスにまとめる
-    const res=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 15000);
+    const res=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 60000);
     const json=await res.json();
     const all=json.all||{};
     records=Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
   } else {
-    const res=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 15000);
+    const res=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 60000);
     const json=await res.json();
     records=(json.records||[]).map(r=>({...r, member:currentUser, ownerMember:currentUser}));
   }
@@ -3702,13 +3702,13 @@ async function loadHistory(){
       // 再取得
       try{
         if(isAdmin){
-          const res2=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 15000);
+          const res2=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 60000);
           const json2=await res2.json();
           const all2=json2.all||{};
           const retry=Object.keys(all2).flatMap(m => (all2[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
           if(retry.length>0) records=retry;
         } else {
-          const res2=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 15000);
+          const res2=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 60000);
           const json2=await res2.json();
           if((json2.records||[]).length>0) records=json2.records.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
         }
@@ -5146,11 +5146,11 @@ window.addEventListener('DOMContentLoaded', ()=>{ initPlaceAutocomplete(); });
 
 // ページ読み込み時にURL確認
 window.addEventListener('DOMContentLoaded', async ()=>{
-  // ★起動処理が万一長引いても、起動画面が永遠に表示され続けないようにする保険（最大20秒）
+  // ★起動処理が万一長引いても、起動画面が永遠に表示され続けないようにする保険（最大65秒）
   const TIMEOUT_SENTINEL = Symbol('startup-timeout');
   const result = await Promise.race([
     checkUrlLogin(),
-    new Promise(resolve => setTimeout(() => resolve(TIMEOUT_SENTINEL), 20000))
+    new Promise(resolve => setTimeout(() => resolve(TIMEOUT_SENTINEL), 65000))
   ]);
 
   const loading = document.getElementById('startupLoading');
@@ -5187,7 +5187,7 @@ async function loadDash(){
     // ① まずサマリーを取得して月ボタンを生成（軽い）
     let summaryOk = false;
     try{
-      const res = await fetchWithTimeout(GAS_URL+'?action=getSummary', 15000);
+      const res = await fetchWithTimeout(GAS_URL+'?action=getSummary', 60000);
       const json = await res.json();
       console.log('getSummary raw json =', json);
       if(json.result==='success' && json.summary && Object.keys(json.summary).length > 0){
@@ -5233,7 +5233,7 @@ async function loadDashMonth(){
       // 選択月のみ取得（月フィルター付き）
       let gotAll = false;
       try{
-        const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth), 15000);
+        const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth), 60000);
         const json = await res.json();
         const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
         if(ok && json.all && typeof json.all==='object'){
@@ -5249,7 +5249,7 @@ async function loadDashMonth(){
       if(!gotAll){
         console.log('Fallback: getRecords per member');
         const fetches = [...ALL_MEMBERS, 'admin'].map(m=>
-          fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m), 15000)
+          fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m), 60000)
             .then(r=>r.json())
             .then(j=>{ (j.records||[]).forEach(r=>{ r.member=m; all.push(r); }); })
             .catch(()=>{})
@@ -5257,7 +5257,7 @@ async function loadDashMonth(){
         await Promise.all(fetches);
       }
     } else {
-      const res = await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 15000);
+      const res = await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 60000);
       const json = await res.json();
       if(json.result==='success') json.records.forEach(r=>{ r.member=currentUser; all.push(r); });
     }
