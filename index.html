@@ -2084,14 +2084,24 @@ async function getMyRecords(force){
   }
 }
 
-// ===== マスタデータ（メンバー・顧客・貸付金）の取得を一元管理 =====
+// ===== マスタデータ（メンバー・顧客）の取得を一元管理 =====
 // URLログイン・パスワードログイン、どちらの経路でも確実に取得完了を待てるようにする
+// ★貸付金マスタは案件登録・履歴では使わないため、起動時ではなく集計・設定タブを開いたときに遅延取得する（起動を軽くするため）
 let masterDataPromise = null;
 function ensureMasterData(){
   if(!masterDataPromise){
-    masterDataPromise = Promise.all([fetchMembers(), fetchClients(), fetchLoans()]);
+    masterDataPromise = Promise.all([fetchMembers(), fetchClients()]);
   }
   return masterDataPromise;
+}
+
+// 貸付金マスタの遅延取得（初回だけ取得し、以降はキャッシュを使う）
+let loansLoadedPromise = null;
+function ensureLoansLoaded(){
+  if(!loansLoadedPromise){
+    loansLoadedPromise = fetchLoans();
+  }
+  return loansLoadedPromise;
 }
 
 async function checkUrlLogin(){
@@ -3353,8 +3363,13 @@ function switchTab(tab,btn){
   document.getElementById('tabSetting').style.display = tab==='setting' ?'block':'none';
   document.getElementById('tabDash').style.display    = tab==='dash'    ?'block':'none';
   if(tab==='history') loadHistory();
-  if(tab==='setting'){ renderListEditor(); renderMemberSetting(); renderRateSetting(); renderClientSetting(); renderLoanSetting(); }
-  if(tab==='dash') loadDash();
+  if(tab==='setting'){
+    renderListEditor(); renderMemberSetting(); renderRateSetting(); renderClientSetting();
+    ensureLoansLoaded().then(()=>renderLoanSetting());
+  }
+  if(tab==='dash'){
+    ensureLoansLoaded().then(()=>loadDash());
+  }
 }
 
 // ===== 送信 =====
