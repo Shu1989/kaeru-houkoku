@@ -2120,25 +2120,32 @@ async function saveLoanSettings(){
 }
 
 // ===== 自分のレコード取得（ログイン直後の重複fetchをまとめる） =====
+// null = まだ一度も取得できていない／dirty = 更新イベントがあったので裏で最新化したい
 let myRecordsCache = null;
+let myRecordsCacheDirty = false;
+
+// ★成功/失敗を区別する：通信に失敗した場合はここで例外を投げ、呼び出し側で
+//   「既存キャッシュを残したまま失敗表示にする」か「0件扱いにする」かを判断できるようにする
 async function getMyRecords(force){
   if(!currentUser || currentUser === 'admin') return [];
-  if(myRecordsCache && !force) return myRecordsCache;
-  try{
-    const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
-    const json = await res.json();
-    myRecordsCache = json.records || [];
-  }catch(e){
-    console.warn('自分のレコード取得失敗:', e);
-    myRecordsCache = myRecordsCache || [];
+  if(myRecordsCache !== null && !force && !myRecordsCacheDirty) return myRecordsCache;
+
+  const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
+  const json = await res.json();
+  if(json.result !== 'success'){
+    throw new Error(json.message || '自分の記録の取得に失敗しました');
   }
+  myRecordsCache = json.records || [];
+  myRecordsCacheDirty = false;
   return myRecordsCache;
 }
 
-// 自分の案件データが変わったとき（登録・編集・削除・担当変更）に呼び、
-// 「更新したのに古い履歴が見える」を防ぐための共通キャッシュ破棄処理
+// 自分の案件データが変わったとき（登録・編集・削除・担当変更）に呼ぶ。
+// ★キャッシュ自体は消さず「dirty（要更新）」にするだけにする。
+//   こうしておくと、直後の再取得がもし通信不良で失敗しても、履歴・集計には
+//   引き続き「更新前の内容」が表示され続け、いきなり「記録がありません」にはならない。
 function invalidateMyRecordsCache(){
-  myRecordsCache = null;
+  myRecordsCacheDirty = true;
 }
 
   async function checkReceivedDistributionPopup(){
@@ -3855,7 +3862,12 @@ async function loadHistory(){
       const freshRecords = fresh.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
       finalizeHistoryRecords(freshRecords, isAdmin);
     }catch(e){
+      // ★失敗しても、既に表示済みのキャッシュ内容はそのまま残す（「記録がありません」への誤表示を防ぐ）
       console.warn('履歴の裏更新に失敗（表示中のキャッシュのまま）:', e);
+      const banner = document.createElement('div');
+      banner.style.cssText = 'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;';
+      banner.innerHTML = '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadHistory()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>';
+      list.insertBefore(banner, list.firstChild);
     }
     return;
   }
@@ -3907,7 +3919,7 @@ async function loadHistory(){
   }catch(e){
     const isTimeout = e.name === 'AbortError';
     const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
-    list.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>読み込みエラー：${msg}<br><span style="font-size:12px;color:#999;display:block;margin-top:8px;">通信が不安定な場所にいるか、Googleサーバー側が一時的に混み合っている可能性があります。少し待ってから再読み込みしてください。</span><button onclick="location.reload()" style="margin-top:12px;padding:8px 16px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;">🔄 再読み込み</button></div>`;
+    list.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>履歴を読み込めませんでした：${msg}<br><span style="font-size:12px;color:#999;display:block;margin-top:8px;">通信が不安定な場所にいるか、Googleサーバー側が一時的に混み合っている可能性があります。少し待ってから再読み込みしてください。</span><button onclick="loadHistory()" style="margin-top:12px;padding:8px 16px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;">🔄 履歴を再読み込み</button></div>`;
     ['searchAll','searchDone','searchOngoing'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=false;
     });
@@ -5463,7 +5475,15 @@ async function loadDashMonth(){
       const freshAll = fresh.map(r=>({...r, member:currentUser}));
       await finalizeDashRecords(freshAll, isAdminDash);
     }catch(e){
+      // ★失敗しても、既に表示済みのキャッシュ内容はそのまま残す
       console.warn('集計の裏更新に失敗（表示中のキャッシュのまま）:', e);
+      const dashContentEl = document.getElementById('dashContent');
+      if(dashContentEl){
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;';
+        banner.innerHTML = '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadDashMonth()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>';
+        dashContentEl.insertBefore(banner, dashContentEl.firstChild);
+      }
     }
     return;
   }
@@ -5506,7 +5526,7 @@ async function loadDashMonth(){
   }catch(e){
     const isTimeout = e.name === 'AbortError';
     const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
-    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗：'+msg+'<br><button onclick="location.reload()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 再読み込み</button></div></div>';
+    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ 集計を読み込めませんでした：'+msg+'<br><button onclick="loadDashMonth()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 集計を再読み込み</button></div></div>';
     return;
   }
 
