@@ -2123,34 +2123,64 @@ async function saveLoanSettings(){
 // null = まだ一度も取得できていない／dirty = 更新イベントがあったので裏で最新化したい
 let myRecordsCache = null;
 let myRecordsCacheDirty = false;
+let myRecordsLastFetchedAt = 0;
 
 // 案件データのキャッシュは、メンバー・顧客マスタ（7日）より鮮度を優先し、短めの期限にする
 const MY_RECORDS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6時間
+
+// 直近この時間内に正常取得できていれば、force=trueで呼ばれても再取得を省略する
+// （起動直後に取得したばかりのデータを、履歴・集計を開いた瞬間にまた取りに行く無駄を防ぐ）
+const MY_RECORDS_FRESH_WINDOW_MS = 45 * 1000; // 45秒
 
 // ★成功/失敗を区別する：通信に失敗した場合はここで例外を投げ、呼び出し側で
 //   「既存キャッシュを残したまま失敗表示にする」か「0件扱いにする」かを判断できるようにする
 // ★また、いきなりエラー表示にする前に1回だけ内部で自動リトライする
 //   （「1回目は失敗するが再読み込みすれば成功する」ことが多いための緩和策）
-async function getMyRecords(force, retry){
-  if(!currentUser || currentUser === 'admin') return [];
-  if(myRecordsCache !== null && !force && !myRecordsCacheDirty) return myRecordsCache;
+// ★さらに、起動直後など複数箇所からほぼ同時に呼ばれても、進行中の取得を1本にまとめて共有する
+//   （分配通知チェック・継続中案件カードが同時に呼んでも、GASへは1回しか飛ばさない）
+let myRecordsFetchPromise = null;
 
-  try{
-    const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
-    const json = await res.json();
-    if(json.result !== 'success'){
-      throw new Error(json.message || '自分の記録の取得に失敗しました');
-    }
-    myRecordsCache = json.records || [];
-    myRecordsCacheDirty = false;
-    saveMyRecordsCacheToLocalStorage(); // 次回起動時にも即表示できるよう保存
+async function getMyRecords(force){
+  if(!currentUser || currentUser === 'admin') return [];
+
+  const withinFreshWindow = myRecordsLastFetchedAt > 0 && (Date.now() - myRecordsLastFetchedAt) < MY_RECORDS_FRESH_WINDOW_MS;
+
+  // キャッシュがあり、dirtyでもなく、
+  // （通常呼び出し）または（force指定でも直近で取得したばかりで新鮮）なら、通信せずそのまま返す
+  if(myRecordsCache !== null && !myRecordsCacheDirty && (!force || withinFreshWindow)){
     return myRecordsCache;
+  }
+
+  if(myRecordsFetchPromise) return myRecordsFetchPromise; // 進行中の取得があれば、それを待って共有する
+
+  myRecordsFetchPromise = fetchMyRecordsWithRetry().finally(() => {
+    myRecordsFetchPromise = null;
+  });
+
+  return myRecordsFetchPromise;
+}
+
+// 実際の通信を1回試みる
+async function fetchMyRecordsOnce(){
+  const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
+  const json = await res.json();
+  if(json.result !== 'success'){
+    throw new Error(json.message || '自分の記録の取得に失敗しました');
+  }
+  myRecordsCache = json.records || [];
+  myRecordsCacheDirty = false;
+  myRecordsLastFetchedAt = Date.now();
+  saveMyRecordsCacheToLocalStorage(); // 次回起動時にも即表示できるよう保存
+  return myRecordsCache;
+}
+
+// 1回失敗しても、0.8秒待って1回だけ内部で自動リトライする
+async function fetchMyRecordsWithRetry(){
+  try{
+    return await fetchMyRecordsOnce();
   }catch(e){
-    if((retry || 0) < 1){
-      await new Promise(r => setTimeout(r, 800));
-      return getMyRecords(force, (retry || 0) + 1);
-    }
-    throw e;
+    await new Promise(r => setTimeout(r, 800));
+    return await fetchMyRecordsOnce(); // これも失敗すれば、その例外をそのまま呼び出し元に伝える
   }
 }
 
