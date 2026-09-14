@@ -223,6 +223,30 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     position:absolute; top:0; left:0; width:100%;
     padding:24px; font-family:'DM Mono', monospace, sans-serif;
   }
+  /* ページ区切りをきれいにする */
+  #annualReportPrintArea table {
+    page-break-inside: auto;
+  }
+  #annualReportPrintArea tr {
+    page-break-inside: avoid;   /* 行の途中でページが切れないようにする */
+    page-break-after: auto;
+  }
+  #annualReportPrintArea thead {
+    display: table-header-group; /* 2ページ目以降にも見出し行を繰り返す */
+  }
+  #annualReportPrintArea tfoot {
+    display: table-row-group;
+  }
+  #annualReportPrintArea > div:first-child,
+  #annualReportPrintArea > div:nth-child(2) {
+    page-break-after: avoid; /* タイトル・担当者情報の直後で改ページしない */
+  }
+  #annualReportPrintArea table {
+    page-break-before: avoid;
+  }
+  #annualReportPrintArea .pdf-note {
+    page-break-inside: avoid;
+  }
 }
 </style>
 <script defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjBonMsw5VKcshZxQWUB3dxfAEJ8McOCQ&libraries=places&language=ja&callback=initPlaceAutocomplete"></script>
@@ -1943,7 +1967,9 @@ function renderLoanSettingList(){
 
       <div style="margin-bottom:8px;">
         <label style="font-size:11px;color:#888;">月々の天引き額（円・全ての貸付をまとめて天引き）</label>
-        <input type="number" value="${g.monthly||''}" oninput="loanGroups[${gi}].monthly=Number(this.value); renderLoanSettingList();"
+        <input type="number" value="${g.monthly||''}"
+          oninput="loanGroups[${gi}].monthly=Number(this.value)"
+          onchange="renderLoanSettingList()"
           style="width:100%;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;">
       </div>
 
@@ -1953,7 +1979,9 @@ function renderLoanSettingList(){
           <div style="display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:6px;">
             <input type="month" value="${e.month||''}" oninput="loanGroups[${gi}].entries[${ei}].month=this.value"
               style="flex:1.2;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
-            <input type="number" placeholder="金額" value="${e.amount||''}" oninput="loanGroups[${gi}].entries[${ei}].amount=Number(this.value); renderLoanSettingList();"
+            <input type="number" placeholder="金額" value="${e.amount||''}"
+              oninput="loanGroups[${gi}].entries[${ei}].amount=Number(this.value)"
+              onchange="renderLoanSettingList()"
               style="flex:1;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
             <input type="text" placeholder="メモ" value="${e.memo||''}" oninput="loanGroups[${gi}].entries[${ei}].memo=this.value"
               style="flex:1.2;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:12px;">
@@ -3243,7 +3271,7 @@ async function generateAnnualReport(){
           <tbody>${loanRowsHtml}</tbody>
         </table>
         ` : ''}
-        <div style="font-size:11px;color:#888;margin-top:16px;">
+        <div class="pdf-note" style="font-size:11px;color:#888;margin-top:16px;">
           ※ 本表は確定申告の参考資料です。継続中（未確定）の案件は含まれていません。分配案件は、自分の計上額に換算した金額で表示しています。<br>
           ※ 本表は「かえる案件報告」に登録された売上・経費のみの集計です。車両費・通信費・工具費などのその他の経費や、社会保険料控除・医療費控除などの各種控除は含まれていません。確定申告の際は、本表と合わせてご自身でご確認ください。<br>
           参考：国税庁 確定申告特集　https://www.nta.go.jp/taxes/shiraberu/shinkoku/tokushu/index.htm
@@ -3341,7 +3369,7 @@ async function generateAnnualReport(){
           </tr>
         </tfoot>
       </table>
-      <div style="font-size:11px;color:#888;margin-top:16px;">
+      <div class="pdf-note" style="font-size:11px;color:#888;margin-top:16px;">
         ※ 本表は確定申告の参考資料です。継続中（未確定）の案件は含まれていません。分配案件は、自分の計上額に換算した金額で集計しています。${hasLoan ? '貸付金天引きは貸付金設定に基づく概算です。' : ''}<br>
         ※ 本表は「かえる案件報告」に登録された売上・経費のみの集計です。車両費・通信費・工具費などのその他の経費や、社会保険料控除・医療費控除などの各種控除は含まれていません。確定申告の際は、本表と合わせてご自身でご確認ください。<br>
         参考：国税庁 確定申告特集　https://www.nta.go.jp/taxes/shiraberu/shinkoku/tokushu/index.htm
@@ -3368,7 +3396,8 @@ function switchTab(tab,btn){
     ensureLoansLoaded().then(()=>renderLoanSetting());
   }
   if(tab==='dash'){
-    ensureLoansLoaded().then(()=>loadDash());
+    ensureLoansLoaded(); // 並行して取得を開始するだけ（ここでは待たない。描画直前で待ち合わせる）
+    loadDash();
   }
 }
 
@@ -3738,7 +3767,7 @@ async function loadHistory(){
   }catch(e){
     const isTimeout = e.name === 'AbortError';
     const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
-    list.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>読み込みエラー：${msg}<br><span style="font-size:12px;color:#999;display:block;margin-top:8px;">通信が不安定な場所にいるか、Googleサーバー側が一時的に混み合っている可能性があります。少し待ってから再読み込みしてください。</span><button onclick="loadHistory()" style="margin-top:12px;padding:8px 16px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;">🔄 再読み込み</button></div>`;
+    list.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>読み込みエラー：${msg}<br><span style="font-size:12px;color:#999;display:block;margin-top:8px;">通信が不安定な場所にいるか、Googleサーバー側が一時的に混み合っている可能性があります。少し待ってから再読み込みしてください。</span><button onclick="location.reload()" style="margin-top:12px;padding:8px 16px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:13px;cursor:pointer;">🔄 再読み込み</button></div>`;
     ['searchAll','searchDone','searchOngoing'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=false;
     });
@@ -4915,6 +4944,7 @@ async function markDocDone(recordId, docType){
       const rec = dashAllRecords.find(r=>r.id==recordId);
       if(rec) rec[docType] = '済';  // 対応済みに変更
       // 集計画面再描画
+      await ensureLoansLoaded();
       renderDash();
       alert('✅ 対応済みにしました');
     } else {
@@ -5279,7 +5309,7 @@ async function loadDashMonth(){
   }catch(e){
     const isTimeout = e.name === 'AbortError';
     const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
-    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗：'+msg+'<br><button onclick="loadDashMonth()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 再読み込み</button></div></div>';
+    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗：'+msg+'<br><button onclick="location.reload()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 再読み込み</button></div></div>';
     return;
   }
 
@@ -5312,6 +5342,7 @@ async function loadDashMonth(){
   }
 
   try{
+    await ensureLoansLoaded(); // 描画直前で貸付金取得の完了を待ち合わせる（既に完了していれば即通過）
     renderDash();
   }catch(e){
     document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ 表示エラー: '+e.message+'</div></div>';
