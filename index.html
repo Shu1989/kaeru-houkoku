@@ -1167,6 +1167,7 @@ async function saveChangeMember(){
     alert(`担当変更しました
 ${fromLabel} → ${toLabel}`);
     closeChangeMemberModal();
+    invalidateMyRecordsCache(); // ★担当変更で自分の案件構成が変わった可能性があるため破棄
     loadHistory();
   }catch(e){
     alert(e.message || '担当変更に失敗しました');
@@ -1827,6 +1828,12 @@ async function fetchMembers(retry){
         if(m.name !== 'admin') ALL_MEMBERS.push(m.name);
         memberRates[m.name] = Number(m.rate || 0);
       });
+      // ★起動高速化：次回の即時表示用にキャッシュ保存
+      try{
+        localStorage.setItem('kaeru_cache_members', JSON.stringify({
+          MEMBER_CODES_MAP, ALL_MEMBERS, memberRates, savedAt: Date.now()
+        }));
+      }catch(e){ /* 保存失敗は無視 */ }
       return true;
     }
   } catch(e) {
@@ -1840,6 +1847,27 @@ async function fetchMembers(retry){
   return false;
 }
 
+// キャッシュの有効期限（これを過ぎたキャッシュは使わない）
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7日
+
+// キャッシュからメンバー情報を即時復元（起動を待たせないための土台）
+function loadMembersFromCache(){
+  try{
+    const raw = localStorage.getItem('kaeru_cache_members');
+    if(!raw) return false;
+    const cached = JSON.parse(raw);
+    if(!cached || !cached.MEMBER_CODES_MAP) return false;
+    if(!cached.savedAt || (Date.now() - cached.savedAt) > CACHE_MAX_AGE_MS){
+      localStorage.removeItem('kaeru_cache_members'); // 期限切れは破棄
+      return false;
+    }
+    MEMBER_CODES_MAP = cached.MEMBER_CODES_MAP || {};
+    ALL_MEMBERS = cached.ALL_MEMBERS || [];
+    memberRates = cached.memberRates || {};
+    return Object.keys(MEMBER_CODES_MAP).length > 0;
+  }catch(e){ return false; }
+}
+
 // ===== 顧客マスタ取得（GASから動的取得） =====
 async function fetchClients(){
   try {
@@ -1850,10 +1878,35 @@ async function fetchClients(){
       CLIENT_MAP = {};
       ALL_CLIENTS.forEach(c => { CLIENT_MAP[c.short] = c; });
       syncClientOrderList();
+      // ★起動高速化：次回の即時表示用にキャッシュ保存
+      try{
+        localStorage.setItem('kaeru_cache_clients', JSON.stringify({
+          ALL_CLIENTS, savedAt: Date.now()
+        }));
+      }catch(e){ /* 保存失敗は無視 */ }
       return true;
     }
   } catch(e) { console.warn('顧客マスタ取得失敗:', e); }
   return false;
+}
+
+// キャッシュから顧客マスタを即時復元
+function loadClientsFromCache(){
+  try{
+    const raw = localStorage.getItem('kaeru_cache_clients');
+    if(!raw) return false;
+    const cached = JSON.parse(raw);
+    if(!cached || !Array.isArray(cached.ALL_CLIENTS) || !cached.ALL_CLIENTS.length) return false;
+    if(!cached.savedAt || (Date.now() - cached.savedAt) > CACHE_MAX_AGE_MS){
+      localStorage.removeItem('kaeru_cache_clients'); // 期限切れは破棄
+      return false;
+    }
+    ALL_CLIENTS = cached.ALL_CLIENTS;
+    CLIENT_MAP = {};
+    ALL_CLIENTS.forEach(c => { CLIENT_MAP[c.short] = c; });
+    syncClientOrderList();
+    return true;
+  }catch(e){ return false; }
 }
 
 // 既存の「使った順」並びを保ちつつ、削除された顧客を除去・新規顧客を追加
@@ -2072,7 +2125,7 @@ async function getMyRecords(force){
   if(!currentUser || currentUser === 'admin') return [];
   if(myRecordsCache && !force) return myRecordsCache;
   try{
-    const res = await fetch(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser));
+    const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
     const json = await res.json();
     myRecordsCache = json.records || [];
   }catch(e){
@@ -2080,6 +2133,12 @@ async function getMyRecords(force){
     myRecordsCache = myRecordsCache || [];
   }
   return myRecordsCache;
+}
+
+// 自分の案件データが変わったとき（登録・編集・削除・担当変更）に呼び、
+// 「更新したのに古い履歴が見える」を防ぐための共通キャッシュ破棄処理
+function invalidateMyRecordsCache(){
+  myRecordsCache = null;
 }
 
   async function checkReceivedDistributionPopup(){
@@ -2133,11 +2192,40 @@ function ensureLoansLoaded(){
 }
 
 async function checkUrlLogin(){
-  // GASからメンバー・顧客マスタ・貸付金マスタを並行取得
-  const [membersOk] = await ensureMasterData();
-
   const params = new URLSearchParams(window.location.search);
   const code = params.get('member');
+
+  // ★起動高速化：前回成功時のキャッシュがあり、URLコードがその中で有効なら、
+  //   GASからの応答を待たずに即座にアプリ画面を表示し、裏側で最新データに静かに同期する
+  const hasCachedMembers = loadMembersFromCache();
+  loadClientsFromCache(); // 顧客マスタはキャッシュが無くても起動は進める（顧客検索欄が空でも致命的ではないため）
+
+  if(code && hasCachedMembers && MEMBER_CODES_MAP[code]){
+    showAppScreenForMember(MEMBER_CODES_MAP[code]);
+    // 裏で最新のメンバー・顧客マスタを取得し、画面に反映するもの（検索候補など）だけ静かに更新
+    ensureMasterData().then(([membersOk])=>{
+      // ★再検証：キャッシュが古く、実際にはこのコードが既に削除・変更されていないか確認する
+      //   （社内用の簡易システムとはいえ、削除済みメンバーがキャッシュだけで入り続けられる状態は避ける）
+      if(membersOk && !MEMBER_CODES_MAP[code]){
+        try{ localStorage.removeItem('kaeru_cache_members'); }catch(e){}
+        try{ localStorage.removeItem('kaeru_cache_clients'); }catch(e){}
+        currentUser = null;
+        document.getElementById('appScreen').style.display='none';
+        document.getElementById('mainHeader').style.display='none';
+        document.getElementById('mainTabs').style.display='none';
+        document.getElementById('errorScreenTitle').textContent = 'アクセスが無効になりました';
+        document.getElementById('errorScreenBody').innerHTML = 'このURLは現在使用できません。<br>管理者に新しいURLを確認してください。';
+        document.getElementById('errorScreen').style.display='flex';
+        return;
+      }
+      refreshDependentUiAfterSync();
+    }).catch(()=>{ /* 裏の同期失敗は起動自体には影響させない */ });
+    return;
+  }
+
+  // キャッシュが無い、またはコードがキャッシュ内に見つからない場合は、従来通り通信完了を待つ
+  const [membersOk] = await ensureMasterData();
+
   if(!code || !MEMBER_CODES_MAP[code]){
     document.getElementById('appScreen').style.display='none';
     if(code && !membersOk){
@@ -2148,9 +2236,14 @@ async function checkUrlLogin(){
     document.getElementById('errorScreen').style.display='flex';
     return;
   }
-  const member = MEMBER_CODES_MAP[code];
+
+  showAppScreenForMember(MEMBER_CODES_MAP[code]);
+}
+
+// ログイン確定後の画面表示処理（キャッシュ即時表示・通常表示のどちらからも呼ばれる共通処理）
+function showAppScreenForMember(member){
   currentUser = member;
-  updateDocFilterVisibility();   // ←追加
+  updateDocFilterVisibility();
   document.getElementById('errorScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
   document.getElementById('mainHeader').style.display='flex';
@@ -2163,12 +2256,36 @@ async function checkUrlLogin(){
   document.getElementById('dashTabBtn').style.display    = 'inline-block'; // 全員表示
   setTimeout(initPlaceAutocomplete, 300);
   initSelects();
-renderBreakdown();
-renderWorkCandidateList('');
-checkReceivedDistributionPopup();
-openRecordFromUrl();
-loadOngoingRecords();
-loadSignature();
+  renderBreakdown();
+  renderWorkCandidateList('');
+  checkReceivedDistributionPopup();
+  openRecordFromUrl();
+  loadOngoingRecords();
+  loadSignature();
+}
+
+// 裏側でのマスタ再取得が終わった後、既に表示している画面のうち
+// 顧客・メンバーのマスタに依存する部分だけを静かに更新する
+function refreshDependentUiAfterSync(){
+  try{
+    renderClientCandidateList(document.getElementById('fClientSearch')?.value || '');
+    buildSelect('eClient', lists.clients, '顧客名を選択');
+
+    // 分配メンバー候補（すでに追加済みの行は触らず、「次に追加できる人」の一覧だけ最新化）
+    if(typeof refreshMultiSelect === 'function') refreshMultiSelect();
+    if(typeof refreshEMultiSelect === 'function') refreshEMultiSelect();
+
+    // 顧客の書類設定は、まだ書類チェックを何も入れていない場合だけ再判定する
+    // （ユーザーが既にチェック済みの項目を、裏の同期で気づかないうちに外してしまわないようにするガード）
+    const fClient = document.getElementById('fClient');
+    if(fClient && fClient.value){
+      const noDocChecked = !document.getElementById('chkMitsumori')?.checked
+        && !document.getElementById('chkNohinshi')?.checked
+        && !document.getElementById('chkHoukokusho')?.checked
+        && !document.getElementById('chkSeikyusho')?.checked;
+      if(noDocChecked) onClientChange();
+    }
+  }catch(e){ /* 画面がまだ準備できていない等は無視 */ }
 }
 
 // ===== セレクト =====
@@ -3558,6 +3675,7 @@ console.log('受取側subRecord', subRecord);
       const usedBdNames = breakdownRows.filter(r=>r.type!=='group').map(r=>r.name).filter(Boolean);
       bumpUsedItems(client, work, usedBdNames);
       showDocGenArea(record);
+      invalidateMyRecordsCache(); // ★登録した内容がすぐ履歴・集計に反映されるようにキャッシュを破棄
       loadOngoingRecords();
       resetForm();
     } else {
@@ -3690,17 +3808,64 @@ async function fetchWithTimeout(url, timeoutMs){
   }
 }
 
+// 履歴データの並び替え・管理者フィルター構築・表示確定をまとめた共通処理
+// （キャッシュ即表示・通常取得のどちらからも呼べるようにするための切り出し）
+function finalizeHistoryRecords(records, isAdmin){
+  records = [...records].sort((a, b) => {
+    const ta = getRecordSortTime(a);
+    const tb = getRecordSortTime(b);
+    if (ta !== tb) return tb - ta;
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
+
+  if(isAdmin){
+    const members = ['all', ...new Set(
+      records
+        .map(r => (r.member || r.ownerMember || '').trim())
+        .filter(v => v !== '' && v !== 'undefined')
+    )];
+
+    document.getElementById('filterBtns').innerHTML = members.map(m =>
+      `<button class="filter-btn ${currentFilter===m?'active':''}" onclick="setFilter('${m}')">${m==='all'?'全員':m==='admin'?'かえる':m}</button>`
+    ).join('');
+
+    if(currentFilter !== 'all') {
+      records = records.filter(r => (r.member || r.ownerMember || '') === currentFilter);
+    }
+  }
+
+  allLoadedRecords = records;
+  applySearch();
+}
+
 async function loadHistory(){
   const list=document.getElementById('historyList');
   loadStart = Date.now();
+
+  const isAdmin=currentUser==='admin';
+  document.getElementById('adminFilter').style.display=isAdmin?'block':'none';
+
+  // ★一般メンバー：起動時に取得済みのキャッシュがあれば、通信を待たずに即座に表示し、裏で最新化する
+  if(!isAdmin && myRecordsCache){
+    const cachedRecords = myRecordsCache.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
+    finalizeHistoryRecords(cachedRecords, isAdmin);
+
+    try{
+      const fresh = await getMyRecords(true);
+      const freshRecords = fresh.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
+      finalizeHistoryRecords(freshRecords, isAdmin);
+    }catch(e){
+      console.warn('履歴の裏更新に失敗（表示中のキャッシュのまま）:', e);
+    }
+    return;
+  }
+
+  // 従来通りの取得（キャッシュがまだ無い・管理者の場合）
   list.innerHTML = '<div class="loading"><div class="spinner-dark"></div><div style="margin-top:10px;">読み込み中…🐸</div></div>';
   // 読み込み中はフィルターボタンを無効化
   ['searchAll','searchDone','searchOngoing'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.disabled=true;
   });
-
-  const isAdmin=currentUser==='admin';
-  document.getElementById('adminFilter').style.display=isAdmin?'block':'none';
 
   try{
   let records=[];
@@ -3711,34 +3876,10 @@ async function loadHistory(){
     const all=json.all||{};
     records=Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
   } else {
-    const res=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 60000);
-    const json=await res.json();
-    records=(json.records||[]).map(r=>({...r, member:currentUser, ownerMember:currentUser}));
+    // 一般メンバー：getMyRecords経由で取得し、以降の履歴・集計でも使えるようキャッシュに残す
+    const fresh=await getMyRecords();
+    records=(fresh||[]).map(r=>({...r, member:currentUser, ownerMember:currentUser}));
   }
-
-  records.sort((a, b) => {
-    const ta = getRecordSortTime(a);
-    const tb = getRecordSortTime(b);
-
-    if (ta !== tb) return tb - ta;
-    return String(b.id || '').localeCompare(String(a.id || ''));
-  });
-
-    if(isAdmin){
-  const members = ['all', ...new Set(
-    records
-      .map(r => (r.member || r.ownerMember || '').trim())
-      .filter(v => v !== '' && v !== 'undefined')
-  )];
-
-  document.getElementById('filterBtns').innerHTML = members.map(m =>
-    `<button class="filter-btn ${currentFilter===m?'active':''}" onclick="setFilter('${m}')">${m==='all'?'全員':m==='admin'?'かえる':m}</button>`
-  ).join('');
-
-  if(currentFilter !== 'all') {
-    records = records.filter(r => (r.member || r.ownerMember || '') === currentFilter);
-  }
-}
 
     // コールドスタート対策：空だった場合は6秒後に1回再試行
     if(records.length === 0){
@@ -3752,18 +3893,17 @@ async function loadHistory(){
           const retry=Object.keys(all2).flatMap(m => (all2[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
           if(retry.length>0) records=retry;
         } else {
-          const res2=await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 60000);
-          const json2=await res2.json();
-          if((json2.records||[]).length>0) records=json2.records.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
+          const fresh2=await getMyRecords(true);
+          if((fresh2||[]).length>0) records=fresh2.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
         }
       }catch(e2){ /* 再試行失敗は無視 */ }
     }
-    allLoadedRecords = records;
+
+    finalizeHistoryRecords(records, isAdmin);
     // フィルターボタンを有効化
     ['searchAll','searchDone','searchOngoing'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.disabled=false;
     });
-    applySearch();
   }catch(e){
     const isTimeout = e.name === 'AbortError';
     const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
@@ -5066,6 +5206,7 @@ async function saveEdit(){
         }
       }
       closeEditModal();
+      invalidateMyRecordsCache(); // ★編集内容がすぐ履歴・集計に反映されるようにキャッシュを破棄
       loadHistory();
       loadOngoingRecords();
     } else {
@@ -5086,6 +5227,7 @@ async function deleteRecord(id, member){
     const res=await fetch(GAS_URL+'?data='+encoded);
     const json=await res.json();
     if(json.result==='success'){
+      invalidateMyRecordsCache(); // ★削除がすぐ履歴・集計に反映されるようにキャッシュを破棄
       loadHistory();
       loadOngoingRecords(); 
     } else {
@@ -5267,52 +5409,9 @@ function renderDashMonthBtns(monthButtonsHtml){
   document.getElementById('dashMonthBtns').innerHTML = monthButtonsHtml + pdfBtn;
 }
 
-async function loadDashMonth(){
-  const isAdminDash = currentUser === 'admin';
-  let all = [];
-
-  document.getElementById('dashContent').innerHTML = '<div class="loading"><div class="spinner-dark"></div><div style="margin-top:10px;">読み込み中…🐸</div></div>';
-
-  try{
-    if(isAdminDash){
-      // 選択月のみ取得（月フィルター付き）
-      let gotAll = false;
-      try{
-        const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth), 60000);
-        const json = await res.json();
-        const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
-        if(ok && json.all && typeof json.all==='object'){
-          Object.entries(json.all).forEach(([mem, records])=>{
-            if(mem==='マスタ') return;
-            (records||[]).forEach(r=>{ r.member=mem; all.push(r); });
-          });
-          gotAll = all.length > 0;
-        }
-      }catch(e){ gotAll = false; }
-
-      // フォールバック：月フィルターなしで全件取得→フロントで絞る
-      if(!gotAll){
-        console.log('Fallback: getRecords per member');
-        const fetches = [...ALL_MEMBERS, 'admin'].map(m=>
-          fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m), 60000)
-            .then(r=>r.json())
-            .then(j=>{ (j.records||[]).forEach(r=>{ r.member=m; all.push(r); }); })
-            .catch(()=>{})
-        );
-        await Promise.all(fetches);
-      }
-    } else {
-      const res = await fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser), 60000);
-      const json = await res.json();
-      if(json.result==='success') json.records.forEach(r=>{ r.member=currentUser; all.push(r); });
-    }
-  }catch(e){
-    const isTimeout = e.name === 'AbortError';
-    const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
-    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗：'+msg+'<br><button onclick="location.reload()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 再読み込み</button></div></div>';
-    return;
-  }
-
+// 集計データの確定処理（月ボタン生成・貸付金待ち合わせ・描画）をまとめた共通処理
+// （キャッシュ即表示・通常取得のどちらからも呼べるようにするための切り出し）
+async function finalizeDashRecords(all, isAdminDash){
   dashAllRecords = all;
 
   if(all.length === 0){
@@ -5348,6 +5447,70 @@ async function loadDashMonth(){
     document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ 表示エラー: '+e.message+'</div></div>';
     console.error('renderDash error:', e);
   }
+}
+
+async function loadDashMonth(){
+  const isAdminDash = currentUser === 'admin';
+  let all = [];
+
+  // ★一般メンバー：既にキャッシュがあれば即座に集計を表示し、裏で最新化する
+  if(!isAdminDash && myRecordsCache){
+    const cachedAll = myRecordsCache.map(r=>({...r, member:currentUser}));
+    await finalizeDashRecords(cachedAll, isAdminDash);
+
+    try{
+      const fresh = await getMyRecords(true);
+      const freshAll = fresh.map(r=>({...r, member:currentUser}));
+      await finalizeDashRecords(freshAll, isAdminDash);
+    }catch(e){
+      console.warn('集計の裏更新に失敗（表示中のキャッシュのまま）:', e);
+    }
+    return;
+  }
+
+  document.getElementById('dashContent').innerHTML = '<div class="loading"><div class="spinner-dark"></div><div style="margin-top:10px;">読み込み中…🐸</div></div>';
+
+  try{
+    if(isAdminDash){
+      // 選択月のみ取得（月フィルター付き）
+      let gotAll = false;
+      try{
+        const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth), 60000);
+        const json = await res.json();
+        const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
+        if(ok && json.all && typeof json.all==='object'){
+          Object.entries(json.all).forEach(([mem, records])=>{
+            if(mem==='マスタ') return;
+            (records||[]).forEach(r=>{ r.member=mem; all.push(r); });
+          });
+          gotAll = all.length > 0;
+        }
+      }catch(e){ gotAll = false; }
+
+      // フォールバック：月フィルターなしで全件取得→フロントで絞る
+      if(!gotAll){
+        console.log('Fallback: getRecords per member');
+        const fetches = [...ALL_MEMBERS, 'admin'].map(m=>
+          fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m), 60000)
+            .then(r=>r.json())
+            .then(j=>{ (j.records||[]).forEach(r=>{ r.member=m; all.push(r); }); })
+            .catch(()=>{})
+        );
+        await Promise.all(fetches);
+      }
+    } else {
+      // 一般メンバー：getMyRecords経由で取得し、履歴タブとキャッシュを共有する
+      const fresh = await getMyRecords();
+      (fresh||[]).forEach(r=>{ all.push({...r, member:currentUser}); });
+    }
+  }catch(e){
+    const isTimeout = e.name === 'AbortError';
+    const msg = isTimeout ? '通信がタイムアウトしました。電波の良い場所で再度お試しください。' : e.message;
+    document.getElementById('dashContent').innerHTML='<div class="card"><div style="color:#e53935;padding:20px;font-size:13px;">⚠️ データ取得失敗：'+msg+'<br><button onclick="location.reload()" style="margin-top:10px;padding:7px 14px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer;">🔄 再読み込み</button></div></div>';
+    return;
+  }
+
+  await finalizeDashRecords(all, isAdminDash);
 }
 
 async function selectDashMonth(m){
