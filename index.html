@@ -613,6 +613,8 @@ textarea{resize:vertical;min-height:110px;line-height:1.6;}
     <div id="adminFilter" style="display:none;">
       <div class="admin-filter" id="filterBtns"></div>
     </div>
+    <!-- 月選択（デフォルトは今月。過去分は「すべて」で見られる） -->
+    <div id="historyMonthBtns" style="display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;"></div>
     <!-- 検索 -->
     <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#795548;line-height:1.7;">
       💡 データ量に応じて読み込みに時間を要する場合があります。本アプリのスペック上ご了承ください。
@@ -3891,6 +3893,52 @@ async function fetchWithTimeout(url, timeoutMs){
   }
 }
 
+// ===== 履歴の月選択（デフォルト今月・過去分は「すべて」で閲覧） =====
+let historyMonth = ''; // ''=未設定（初回に今月を自動選択）／'all'=すべて／それ以外は 'yyyy-MM'
+let historyAllRecords = []; // 月で絞り込む前の全件（メンバー絞り込み後）を保持し、月切替時に再取得せず使い回す
+
+function getThisMonthKey(){
+  const now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+
+function filterRecordsByHistoryMonth(records){
+  if(historyMonth === 'all') return records;
+  const target = historyMonth || getThisMonthKey();
+  return records.filter(r => getMonthKey(r.date) === target);
+}
+
+function renderHistoryMonthBtns(records){
+  const container = document.getElementById('historyMonthBtns');
+  if(!container) return;
+
+  const thisMonth = getThisMonthKey();
+  const months = [...new Set(records.map(r => getMonthKey(r.date)).filter(Boolean))].sort().reverse();
+
+  // 初回はデフォルトで今月を選択（今月のデータが無ければ「すべて」にする）
+  if(!historyMonth){
+    historyMonth = months.includes(thisMonth) ? thisMonth : 'all';
+  }
+
+  const monthButtonsHtml = months.map(m => `
+    <button onclick="selectHistoryMonth('${m}')" style="padding:7px 16px;border-radius:20px;border:1.5px solid ${m===historyMonth?'#2e7d32':'#ccc'};background:${m===historyMonth?'#2e7d32':'white'};color:${m===historyMonth?'white':'#555'};font-size:13px;font-weight:${m===historyMonth?'700':'400'};cursor:pointer;white-space:nowrap;">
+      ${m===thisMonth?'📅 ':''}${m.replace('-','年')}月
+    </button>`).join('');
+
+  const allButtonHtml = `
+    <button onclick="selectHistoryMonth('all')" style="padding:7px 16px;border-radius:20px;border:1.5px solid ${historyMonth==='all'?'#2e7d32':'#ccc'};background:${historyMonth==='all'?'#2e7d32':'white'};color:${historyMonth==='all'?'white':'#555'};font-size:13px;font-weight:${historyMonth==='all'?'700':'400'};cursor:pointer;white-space:nowrap;">すべて</button>`;
+
+  container.innerHTML = monthButtonsHtml + allButtonHtml;
+}
+
+// 月ボタンを押したとき：再取得せず、既に持っているデータから絞り込み直すだけ
+function selectHistoryMonth(m){
+  historyMonth = m;
+  renderHistoryMonthBtns(historyAllRecords);
+  allLoadedRecords = filterRecordsByHistoryMonth(historyAllRecords);
+  applySearch();
+}
+
 // 履歴データの並び替え・管理者フィルター構築・表示確定をまとめた共通処理
 // （キャッシュ即表示・通常取得のどちらからも呼べるようにするための切り出し）
 function finalizeHistoryRecords(records, isAdmin){
@@ -3917,7 +3965,10 @@ function finalizeHistoryRecords(records, isAdmin){
     }
   }
 
-  allLoadedRecords = records;
+  historyAllRecords = records; // 月絞り込み前（メンバー絞り込み後）の全件を保持
+  renderHistoryMonthBtns(records);
+
+  allLoadedRecords = filterRecordsByHistoryMonth(records);
   applySearch();
 }
 
@@ -3998,6 +4049,19 @@ function invalidateAdminCaches(){
   adminDashCacheByMonth = {};
 }
 
+// 履歴の状態バナー（同期中・失敗）は必ずこの1枚だけにする。
+// 既にあれば中身を書き換えるだけにし、複数箇所から呼ばれても重複して増えないようにする。
+function setHistoryStatusBanner(list, html, styleCss){
+  let banner = document.getElementById('historyStatusBanner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'historyStatusBanner';
+    list.insertBefore(banner, list.firstChild);
+  }
+  banner.style.cssText = styleCss;
+  banner.innerHTML = html;
+}
+
 async function loadHistory(){
   const list=document.getElementById('historyList');
   loadStart = Date.now();
@@ -4008,13 +4072,13 @@ async function loadHistory(){
   // ★一般メンバー：起動時に取得済みのキャッシュがあれば、通信を待たずに即座に表示し、裏で最新化する
   if(!isAdmin && myRecordsCache){
     const cachedRecords = myRecordsCache.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
-    finalizeHistoryRecords(cachedRecords, isAdmin);
+    finalizeHistoryRecords(cachedRecords, isAdmin); // 丸ごと再描画されるので、前回の状態バナーは自然に消える
 
     // ★裏で最新化中であることを控えめに知らせる（成功すれば再描画で自然に消える）
-    const syncingBanner = document.createElement('div');
-    syncingBanner.style.cssText = 'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;';
-    syncingBanner.textContent = '前回データを表示中・最新情報を確認しています…';
-    list.insertBefore(syncingBanner, list.firstChild);
+    setHistoryStatusBanner(list,
+      '前回データを表示中・最新情報を確認しています…',
+      'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;'
+    );
 
     try{
       const fresh = await getMyRecords(true);
@@ -4023,10 +4087,10 @@ async function loadHistory(){
     }catch(e){
       // ★失敗しても、既に表示済みのキャッシュ内容はそのまま残す（「記録がありません」への誤表示を防ぐ）
       console.warn('履歴の裏更新に失敗（表示中のキャッシュのまま）:', e);
-      const banner = document.createElement('div');
-      banner.style.cssText = 'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;';
-      banner.innerHTML = '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadHistory()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>';
-      list.insertBefore(banner, list.firstChild);
+      setHistoryStatusBanner(list,
+        '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadHistory()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>',
+        'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;'
+      );
     }
     return;
   }
@@ -5616,6 +5680,18 @@ async function finalizeDashRecords(all, isAdminDash){
   }
 }
 
+// 集計の状態バナー（同期中・失敗）も同様に、必ずこの1枚だけにする
+function setDashStatusBanner(container, html, styleCss){
+  let banner = document.getElementById('dashStatusBanner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'dashStatusBanner';
+    container.insertBefore(banner, container.firstChild);
+  }
+  banner.style.cssText = styleCss;
+  banner.innerHTML = html;
+}
+
 async function loadDashMonth(){
   const isAdminDash = currentUser === 'admin';
   let all = [];
@@ -5623,15 +5699,15 @@ async function loadDashMonth(){
   // ★一般メンバー：既にキャッシュがあれば即座に集計を表示し、裏で最新化する
   if(!isAdminDash && myRecordsCache){
     const cachedAll = myRecordsCache.map(r=>({...r, member:currentUser}));
-    await finalizeDashRecords(cachedAll, isAdminDash);
+    await finalizeDashRecords(cachedAll, isAdminDash); // 丸ごと再描画されるので、前回の状態バナーは自然に消える
 
     // ★裏で最新化中であることを控えめに知らせる（成功すれば再描画で自然に消える）
     const dashSyncingEl = document.getElementById('dashContent');
     if(dashSyncingEl){
-      const syncingBanner = document.createElement('div');
-      syncingBanner.style.cssText = 'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;';
-      syncingBanner.textContent = '前回の集計を表示中・最新情報を確認しています…';
-      dashSyncingEl.insertBefore(syncingBanner, dashSyncingEl.firstChild);
+      setDashStatusBanner(dashSyncingEl,
+        '前回の集計を表示中・最新情報を確認しています…',
+        'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;'
+      );
     }
 
     try{
@@ -5643,10 +5719,10 @@ async function loadDashMonth(){
       console.warn('集計の裏更新に失敗（表示中のキャッシュのまま）:', e);
       const dashContentEl = document.getElementById('dashContent');
       if(dashContentEl){
-        const banner = document.createElement('div');
-        banner.style.cssText = 'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;';
-        banner.innerHTML = '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadDashMonth()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>';
-        dashContentEl.insertBefore(banner, dashContentEl.firstChild);
+        setDashStatusBanner(dashContentEl,
+          '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadDashMonth()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>',
+          'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;'
+        );
       }
     }
     return;
