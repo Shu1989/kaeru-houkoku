@@ -2124,20 +2124,63 @@ async function saveLoanSettings(){
 let myRecordsCache = null;
 let myRecordsCacheDirty = false;
 
+// 案件データのキャッシュは、メンバー・顧客マスタ（7日）より鮮度を優先し、短めの期限にする
+const MY_RECORDS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6時間
+
 // ★成功/失敗を区別する：通信に失敗した場合はここで例外を投げ、呼び出し側で
 //   「既存キャッシュを残したまま失敗表示にする」か「0件扱いにする」かを判断できるようにする
-async function getMyRecords(force){
+// ★また、いきなりエラー表示にする前に1回だけ内部で自動リトライする
+//   （「1回目は失敗するが再読み込みすれば成功する」ことが多いための緩和策）
+async function getMyRecords(force, retry){
   if(!currentUser || currentUser === 'admin') return [];
   if(myRecordsCache !== null && !force && !myRecordsCacheDirty) return myRecordsCache;
 
-  const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
-  const json = await res.json();
-  if(json.result !== 'success'){
-    throw new Error(json.message || '自分の記録の取得に失敗しました');
+  try{
+    const res = await fetchWithTimeout(GAS_URL + '?action=getRecords&member=' + encodeURIComponent(currentUser), 60000);
+    const json = await res.json();
+    if(json.result !== 'success'){
+      throw new Error(json.message || '自分の記録の取得に失敗しました');
+    }
+    myRecordsCache = json.records || [];
+    myRecordsCacheDirty = false;
+    saveMyRecordsCacheToLocalStorage(); // 次回起動時にも即表示できるよう保存
+    return myRecordsCache;
+  }catch(e){
+    if((retry || 0) < 1){
+      await new Promise(r => setTimeout(r, 800));
+      return getMyRecords(force, (retry || 0) + 1);
+    }
+    throw e;
   }
-  myRecordsCache = json.records || [];
-  myRecordsCacheDirty = false;
-  return myRecordsCache;
+}
+
+// 案件データのキャッシュをlocalStorageへ保存（メンバーごとに分けて保存）
+function saveMyRecordsCacheToLocalStorage(){
+  if(!currentUser || currentUser === 'admin') return;
+  try{
+    localStorage.setItem('kaeru_cache_myrecords_' + currentUser, JSON.stringify({
+      records: myRecordsCache, savedAt: Date.now()
+    }));
+  }catch(e){ /* 保存失敗は無視 */ }
+}
+
+// アプリ起動直後に呼び、前回のキャッシュがあれば即座に復元する
+// （復元したものは必ず「要再確認」扱いにし、裏で必ず最新化させる）
+function loadMyRecordsCacheFromLocalStorage(){
+  if(!currentUser || currentUser === 'admin') return false;
+  try{
+    const raw = localStorage.getItem('kaeru_cache_myrecords_' + currentUser);
+    if(!raw) return false;
+    const cached = JSON.parse(raw);
+    if(!cached || !Array.isArray(cached.records)) return false;
+    if(!cached.savedAt || (Date.now() - cached.savedAt) > MY_RECORDS_CACHE_MAX_AGE_MS){
+      localStorage.removeItem('kaeru_cache_myrecords_' + currentUser); // 期限切れは破棄
+      return false;
+    }
+    myRecordsCache = cached.records;
+    myRecordsCacheDirty = true; // 復元直後は必ず裏で最新化させる
+    return true;
+  }catch(e){ return false; }
 }
 
 // 自分の案件データが変わったとき（登録・編集・削除・担当変更）に呼ぶ。
@@ -2250,6 +2293,7 @@ async function checkUrlLogin(){
 // ログイン確定後の画面表示処理（キャッシュ即時表示・通常表示のどちらからも呼ばれる共通処理）
 function showAppScreenForMember(member){
   currentUser = member;
+  loadMyRecordsCacheFromLocalStorage(); // ★前回の案件データがあれば、この時点で即座に復元しておく
   updateDocFilterVisibility();
   document.getElementById('errorScreen').style.display='none';
   document.getElementById('appScreen').style.display='block';
@@ -3857,10 +3901,16 @@ async function loadHistory(){
     const cachedRecords = myRecordsCache.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
     finalizeHistoryRecords(cachedRecords, isAdmin);
 
+    // ★裏で最新化中であることを控えめに知らせる（成功すれば再描画で自然に消える）
+    const syncingBanner = document.createElement('div');
+    syncingBanner.style.cssText = 'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;';
+    syncingBanner.textContent = '前回データを表示中・最新情報を確認しています…';
+    list.insertBefore(syncingBanner, list.firstChild);
+
     try{
       const fresh = await getMyRecords(true);
       const freshRecords = fresh.map(r=>({...r, member:currentUser, ownerMember:currentUser}));
-      finalizeHistoryRecords(freshRecords, isAdmin);
+      finalizeHistoryRecords(freshRecords, isAdmin); // 履歴を丸ごと再描画するので、上の「確認中」表示も自然に消える
     }catch(e){
       // ★失敗しても、既に表示済みのキャッシュ内容はそのまま残す（「記録がありません」への誤表示を防ぐ）
       console.warn('履歴の裏更新に失敗（表示中のキャッシュのまま）:', e);
@@ -5470,10 +5520,19 @@ async function loadDashMonth(){
     const cachedAll = myRecordsCache.map(r=>({...r, member:currentUser}));
     await finalizeDashRecords(cachedAll, isAdminDash);
 
+    // ★裏で最新化中であることを控えめに知らせる（成功すれば再描画で自然に消える）
+    const dashSyncingEl = document.getElementById('dashContent');
+    if(dashSyncingEl){
+      const syncingBanner = document.createElement('div');
+      syncingBanner.style.cssText = 'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;';
+      syncingBanner.textContent = '前回の集計を表示中・最新情報を確認しています…';
+      dashSyncingEl.insertBefore(syncingBanner, dashSyncingEl.firstChild);
+    }
+
     try{
       const fresh = await getMyRecords(true);
       const freshAll = fresh.map(r=>({...r, member:currentUser}));
-      await finalizeDashRecords(freshAll, isAdminDash);
+      await finalizeDashRecords(freshAll, isAdminDash); // 集計を丸ごと再描画するので、上の「確認中」表示も自然に消える
     }catch(e){
       // ★失敗しても、既に表示済みのキャッシュ内容はそのまま残す
       console.warn('集計の裏更新に失敗（表示中のキャッシュのまま）:', e);
