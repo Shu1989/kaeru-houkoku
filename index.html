@@ -1168,6 +1168,7 @@ async function saveChangeMember(){
 ${fromLabel} → ${toLabel}`);
     closeChangeMemberModal();
     invalidateMyRecordsCache(); // ★担当変更で自分の案件構成が変わった可能性があるため破棄
+    invalidateAdminCaches(); // ★管理者の全履歴・集計キャッシュも破棄
     loadHistory();
   }catch(e){
     alert(e.message || '担当変更に失敗しました');
@@ -3757,6 +3758,7 @@ console.log('受取側subRecord', subRecord);
       bumpUsedItems(client, work, usedBdNames);
       showDocGenArea(record);
       invalidateMyRecordsCache(); // ★登録した内容がすぐ履歴・集計に反映されるようにキャッシュを破棄
+      invalidateAdminCaches(); // ★管理者の全履歴・集計キャッシュも破棄
       loadOngoingRecords();
       resetForm();
     } else {
@@ -3919,6 +3921,83 @@ function finalizeHistoryRecords(records, isAdmin){
   applySearch();
 }
 
+// ===== 管理者専用：全履歴の短時間メモリキャッシュ =====
+// ★一般メンバーと違い、管理者は「全員分」のデータを扱うため、端末への永続保存(localStorage)はせず、
+//   短時間（45秒）のメモリキャッシュのみにとどめる。同時に複数箇所から呼ばれても通信は1本にまとめる。
+let adminHistoryCache = null;
+let adminHistoryCacheAt = 0;
+let adminHistoryFetchPromise = null;
+const ADMIN_CACHE_FRESH_WINDOW_MS = 45 * 1000; // 45秒
+
+async function getAdminAllRecords(force){
+  const isFresh = adminHistoryCache !== null && (Date.now() - adminHistoryCacheAt) < ADMIN_CACHE_FRESH_WINDOW_MS;
+  if(adminHistoryCache !== null && !force && isFresh) return adminHistoryCache;
+
+  if(adminHistoryFetchPromise) return adminHistoryFetchPromise;
+
+  adminHistoryFetchPromise = (async () => {
+    const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 60000);
+    const json = await res.json();
+    const all = json.all || {};
+    const records = Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
+    adminHistoryCache = records;
+    adminHistoryCacheAt = Date.now();
+    return records;
+  })();
+
+  try{
+    return await adminHistoryFetchPromise;
+  } finally {
+    adminHistoryFetchPromise = null;
+  }
+}
+
+// 管理者用の月別集計キャッシュ（月ごとに短時間だけ保持・共有）
+let adminDashCacheByMonth = {}; // { '2026-09': {records:[...], fetchedAt: 12345}, ... }
+let adminDashFetchPromiseByMonth = {};
+
+async function getAdminDashRecordsForMonth(month, force){
+  const cached = adminDashCacheByMonth[month];
+  const isFresh = cached && (Date.now() - cached.fetchedAt) < ADMIN_CACHE_FRESH_WINDOW_MS;
+  if(cached && !force && isFresh) return { records: cached.records, gotAll: true };
+
+  if(adminDashFetchPromiseByMonth[month]) return adminDashFetchPromiseByMonth[month];
+
+  adminDashFetchPromiseByMonth[month] = (async () => {
+    let all = [];
+    let gotAll = false;
+    try{
+      const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(month), 60000);
+      const json = await res.json();
+      const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
+      if(ok && json.all && typeof json.all==='object'){
+        Object.entries(json.all).forEach(([mem, records])=>{
+          if(mem==='マスタ') return;
+          (records||[]).forEach(r=>{ r.member=mem; all.push(r); });
+        });
+        gotAll = true; // ★正常な0件月もここに来るので、件数に関わらず取得できた扱いにする
+      }
+    }catch(e){ gotAll = false; }
+
+    if(gotAll){
+      adminDashCacheByMonth[month] = { records: all, fetchedAt: Date.now() };
+    }
+    return { records: all, gotAll };
+  })();
+
+  try{
+    return await adminDashFetchPromiseByMonth[month];
+  } finally {
+    delete adminDashFetchPromiseByMonth[month];
+  }
+}
+
+// 管理者が案件を登録・編集・削除・担当変更したときに呼ぶ（短命キャッシュなので単純に破棄でよい）
+function invalidateAdminCaches(){
+  adminHistoryCache = null;
+  adminDashCacheByMonth = {};
+}
+
 async function loadHistory(){
   const list=document.getElementById('historyList');
   loadStart = Date.now();
@@ -3962,11 +4041,8 @@ async function loadHistory(){
   try{
   let records=[];
   if(isAdmin){
-    // 管理者：getAllRecordsで1回のスプレッドシートアクセスにまとめる
-    const res=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 60000);
-    const json=await res.json();
-    const all=json.all||{};
-    records=Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
+    // 管理者：短時間キャッシュ・進行中リクエスト共有つきで取得
+    records = await getAdminAllRecords();
   } else {
     // 一般メンバー：getMyRecords経由で取得し、以降の履歴・集計でも使えるようキャッシュに残す
     const fresh=await getMyRecords();
@@ -3979,10 +4055,7 @@ async function loadHistory(){
       // 再取得
       try{
         if(isAdmin){
-          const res2=await fetchWithTimeout(GAS_URL+'?action=getAllRecords', 60000);
-          const json2=await res2.json();
-          const all2=json2.all||{};
-          const retry=Object.keys(all2).flatMap(m => (all2[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
+          const retry = await getAdminAllRecords(true);
           if(retry.length>0) records=retry;
         } else {
           const fresh2=await getMyRecords(true);
@@ -5299,6 +5372,7 @@ async function saveEdit(){
       }
       closeEditModal();
       invalidateMyRecordsCache(); // ★編集内容がすぐ履歴・集計に反映されるようにキャッシュを破棄
+      invalidateAdminCaches(); // ★管理者の全履歴・集計キャッシュも破棄
       loadHistory();
       loadOngoingRecords();
     } else {
@@ -5320,6 +5394,7 @@ async function deleteRecord(id, member){
     const json=await res.json();
     if(json.result==='success'){
       invalidateMyRecordsCache(); // ★削除がすぐ履歴・集計に反映されるようにキャッシュを破棄
+      invalidateAdminCaches(); // ★管理者の全履歴・集計キャッシュも破棄
       loadHistory();
       loadOngoingRecords(); 
     } else {
@@ -5581,23 +5656,12 @@ async function loadDashMonth(){
 
   try{
     if(isAdminDash){
-      // 選択月のみ取得（月フィルター付き）
-      let gotAll = false;
-      try{
-        const res = await fetchWithTimeout(GAS_URL+'?action=getAllRecords&month='+encodeURIComponent(dashMonth), 60000);
-        const json = await res.json();
-        const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
-        if(ok && json.all && typeof json.all==='object'){
-          Object.entries(json.all).forEach(([mem, records])=>{
-            if(mem==='マスタ') return;
-            (records||[]).forEach(r=>{ r.member=mem; all.push(r); });
-          });
-          gotAll = all.length > 0;
-        }
-      }catch(e){ gotAll = false; }
+      // 管理者：月別の短時間キャッシュ・進行中リクエスト共有つきで取得
+      const result = await getAdminDashRecordsForMonth(dashMonth);
+      all = result.records;
 
-      // フォールバック：月フィルターなしで全件取得→フロントで絞る
-      if(!gotAll){
+      // フォールバック：月フィルターなしで全件取得→フロントで絞る（通信自体が失敗した場合のみ）
+      if(!result.gotAll){
         console.log('Fallback: getRecords per member');
         const fetches = [...ALL_MEMBERS, 'admin'].map(m=>
           fetchWithTimeout(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m), 60000)
@@ -6087,144 +6151,6 @@ function calcEditBuZaiTotal(){
 }
 
 // ===== 編集モーダル 複数メンバー =====
-// ===== 月別計上額タブ =====
-let keijoMonth = '';
-
-async function loadKeijo(){
-  document.getElementById('keijoContent').innerHTML = '<div class="loading"><div class="spinner-dark"></div><div style="margin-top:10px;">読み込み中…🐸</div></div>';
-  // ALL_MEMBERSが空なら再取得
-  if(ALL_MEMBERS.length === 0) await fetchMembers();
-  const isAdmin = currentUser==='admin';
-  let all = [];
-  if(isAdmin){
-    let gotAllKeijo = false;
-    try{
-      const res = await fetch(GAS_URL+'?action=getAllRecords');
-      const json = await res.json();
-      console.log('getAllRecords(keijo) raw json =', json);
-      const ok = json && (json.result==='success'||json.status==='success'||json.status==='ok'||(json.all&&typeof json.all==='object'));
-      if(ok && json.all && typeof json.all==='object'){
-        Object.entries(json.all).forEach(([mem, records])=>{
-          (records||[]).forEach(r=>{ r.member=mem; all.push(r); });
-        });
-        gotAllKeijo = all.length > 0;
-        console.log('getAllRecords(keijo): got', all.length, 'records');
-      } else {
-        console.warn('getAllRecords(keijo): unexpected shape, fallback. json=', json);
-      }
-    }catch(e){
-      console.warn('getAllRecords(keijo) failed, fallback:', e);
-      gotAllKeijo = false;
-    }
-    if(!gotAllKeijo){
-      console.log('Fallback(keijo): getRecords per member');
-      const fetches = [...ALL_MEMBERS, 'admin'].map(m=>
-        fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(m))
-          .then(r=>r.json())
-          .then(j=>{ (j.records||[]).forEach(r=>{ r.member=m; all.push(r); }); })
-          .catch(e=>{ console.warn('fallback error:', m, e); })
-      );
-      await Promise.all(fetches);
-      console.log('Fallback(keijo): total', all.length, 'records');
-    }
-  } else {
-    // メンバー：自分のデータのみ
-    try{
-      const res = await fetch(GAS_URL+'?action=getRecords&member='+encodeURIComponent(currentUser));
-      const json = await res.json();
-      if(json.result==='success') json.records.forEach(r=>{ r.member=currentUser; all.push(r); });
-    }catch(e){}
-  }
-
-  const now = new Date();
-  const thisMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-
-  // データなし or ALL_MEMBERSが空の場合でも表示
-  if(all.length === 0){
-    document.getElementById('keijoMonthBtns').innerHTML = '';
-    document.getElementById('keijoContent').innerHTML = '<div class="card"><div style="color:#aaa;font-size:13px;text-align:center;padding:20px;">データがありません</div></div>';
-    return;
-  }
-
-  const months = [...new Set(all.map(r => getMonthKey(r.date)).filter(Boolean))].sort().reverse();
-  if(!keijoMonth||!months.includes(keijoMonth)) keijoMonth = months.includes(thisMonth)?thisMonth:(months[0]||'');
-
-  document.getElementById('keijoMonthBtns').innerHTML = months.map(m=>`
-    <button onclick="keijoMonth='${m}';loadKeijo()" style="padding:7px 16px;border-radius:20px;border:1.5px solid ${m===keijoMonth?'#2e7d32':'#ccc'};background:${m===keijoMonth?'#2e7d32':'white'};color:${m===keijoMonth?'white':'#555'};font-size:13px;font-weight:${m===keijoMonth?'700':'400'};cursor:pointer;white-space:nowrap;">
-      ${m===thisMonth?'📅 ':''}${m.replace('-','年')}月
-    </button>`).join('');
-
-  const recs = all.filter(r => getMonthKey(r.date) === keijoMonth && !String(r.memo||'').startsWith('【継続中】'));
-
-  if(isAdmin){
-    // 管理者：メンバー別カード
-    const rows = ALL_MEMBERS.map(m=>{
-      const mRecs = recs.filter(r=>r.member===m);
-      if(!mRecs.length) return '';
-      const subtotal = mRecs.reduce((s,r)=>s+Number(r.subtotal||0),0);
-      const keijo    = mRecs.reduce((s,r)=>s+getKeijo(r),0);
-      const kaisha   = subtotal - keijo;
-      const rate     = Number(memberRates[m] ?? 0);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #eee;">
-        <div>
-          <div style="font-weight:700;font-size:15px;">${m} <span style="font-size:11px;color:#888;">(${rate}%・${mRecs.length}件)</span></div>
-          <div style="font-size:12px;color:#888;margin-top:2px;">小計 ¥${subtotal.toLocaleString()}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="color:#2e7d32;font-family:'DM Mono',monospace;font-weight:700;font-size:16px;">¥${keijo.toLocaleString()}</div>
-          <div style="color:#c62828;font-size:12px;">会社 ¥${kaisha.toLocaleString()}</div>
-        </div>
-      </div>`;
-    }).join('');
-
-    const totalKeijo  = recs.reduce((s,r)=>s+getKeijo(r),0);
-    const totalSub    = recs.reduce((s,r)=>s+Number(r.subtotal||0),0);
-    const totalBuZaiAll = recs.reduce((s,r)=>s+Number(r.buZaiTotal||0),0);
-
-    document.getElementById('keijoContent').innerHTML = `
-      <div class="card" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;margin-bottom:12px;">
-        <div style="font-size:13px;opacity:.8;margin-bottom:6px;">${keijoMonth.replace('-','年')}月 計上額合計（${recs.length}件）</div>
-        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;">¥${totalKeijo.toLocaleString()}</div>
-        <div style="font-size:13px;opacity:.8;margin-top:4px;">小計 ¥${totalSub.toLocaleString()} ／ 会社 ¥${(totalSub-totalKeijo).toLocaleString()}</div>
-        ${totalBuZaiAll>0?`<div style="font-size:13px;opacity:.8;">部材合計 ¥${totalBuZaiAll.toLocaleString()}</div>`:''}
-      </div>
-      <div class="card">${rows||'<div style="color:#aaa;font-size:13px;text-align:center;padding:20px;">データなし</div>'}</div>`;
-  } else {
-    // メンバー：自分の月別詳細
-    const subtotal   = recs.reduce((s,r)=>s+Number(r.subtotal||0),0);
-    const totalBuZai = recs.reduce((s,r)=>s+Number(r.buZaiTotal||0),0);
-    const keijo      = recs.reduce((s,r)=>s+getKeijo(r),0);
-    const rate       = Number(memberRates[currentUser] ?? 0);
-    const rows = recs.map(r=>`
-      <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div>
-            <div style="font-size:14px;font-weight:700;">${r.client||''}</div>
-            <div style="font-size:13px;color:#555;">${r.work||''}</div>
-            ${(()=>{ const p=splitPlace(r.place); return `
-              ${p.name?`<div style="font-size:13px;color:#555;">${p.name}</div>`:''}
-              ${p.addr?`<div style="font-size:11px;color:#aaa;">${p.addr}</div>`:''}
-            `; })()}
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:8px;">
-            <div style="font-family:'DM Mono',monospace;color:#2e7d32;font-weight:700;">¥${getKeijo(r).toLocaleString()}</div>
-            <div style="font-size:12px;color:#888;">小計 ¥${Number(r.subtotal||0).toLocaleString()}</div>
-            ${Number(r.buZaiTotal||0)>0?`<div style="font-size:12px;color:#7b1fa2;">部材 ¥${Number(r.buZaiTotal).toLocaleString()}</div>`:''}
-            <div style="font-size:12px;color:#aaa;">${fmtDate(r.date)}</div>
-          </div>
-        </div>
-      </div>`).join('');
-
-    document.getElementById('keijoContent').innerHTML = `
-      <div class="card" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;margin-bottom:12px;">
-        <div style="font-size:13px;opacity:.8;margin-bottom:6px;">${keijoMonth.replace('-','年')}月 計上額（配分率${rate}%・${recs.length}件）</div>
-        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:700;">¥${keijo.toLocaleString()}</div>
-        <div style="font-size:13px;opacity:.8;margin-top:4px;">小計 ¥${subtotal.toLocaleString()}</div>
-        ${totalBuZai>0?`<div style="font-size:13px;opacity:.8;">部材 ¥${totalBuZai.toLocaleString()}</div>`:''}
-      </div>
-      <div class="card">${rows||'<div style="color:#aaa;font-size:13px;text-align:center;padding:20px;">データなし</div>'}</div>`;
-  }
-}
 
 // ===== 追加日付 =====
 let subDates = [];   // 入力フォーム用
