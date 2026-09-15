@@ -3978,6 +3978,33 @@ let adminHistoryCacheAt = 0;
 let adminHistoryFetchPromise = null;
 const ADMIN_CACHE_FRESH_WINDOW_MS = 45 * 1000; // 45秒
 
+// ★管理者履歴の「再訪・リロード時のstale-while-revalidate」専用。sessionStorageなのでタブを閉じれば消え、
+//   localStorageのように全員分データを端末に長期間残さない。あくまで表示を速く見せるためのbest-effortであり、
+//   正しさ（鮮度判定）には一切使わない契約：壊れていても・容量制限に当たっても、従来動作にフォールバックするだけ。
+const ADMIN_HISTORY_SESSION_KEY = 'kaeru_admin_cache_history';
+
+function saveAdminHistoryCacheToSessionStorage(){
+  try{
+    sessionStorage.setItem(ADMIN_HISTORY_SESSION_KEY, JSON.stringify({
+      records: adminHistoryCache, savedAt: Date.now()
+    }));
+  }catch(e){ /* 保存失敗は無視（best-effort） */ }
+}
+
+// 復元直後は必ずadminHistoryCacheAt=0にする：これによりsessionStorage由来のデータは
+// 「fresh判定」には絶対に使われず、次のgetAdminAllRecords()呼び出しで確実にネットワーク取得が走る。
+function loadAdminHistoryCacheFromSessionStorage(){
+  try{
+    const raw = sessionStorage.getItem(ADMIN_HISTORY_SESSION_KEY);
+    if(!raw) return false;
+    const cached = JSON.parse(raw);
+    if(!cached || !Array.isArray(cached.records)) return false;
+    adminHistoryCache = cached.records;
+    adminHistoryCacheAt = 0;
+    return true;
+  }catch(e){ return false; }
+}
+
 async function getAdminAllRecords(force){
   const isFresh = adminHistoryCache !== null && (Date.now() - adminHistoryCacheAt) < ADMIN_CACHE_FRESH_WINDOW_MS;
   if(adminHistoryCache !== null && !force && isFresh) return adminHistoryCache;
@@ -3991,6 +4018,7 @@ async function getAdminAllRecords(force){
     const records = Object.keys(all).flatMap(m => (all[m]||[]).map(r=>({...r, member:m, ownerMember:m})));
     adminHistoryCache = records;
     adminHistoryCacheAt = Date.now();
+    saveAdminHistoryCacheToSessionStorage();
     return records;
   })();
 
@@ -4077,6 +4105,10 @@ function invalidateAdminCaches(){
 
   adminSummaryCache = null;
   adminSummaryCacheAt = 0;
+
+  try{
+    sessionStorage.removeItem(ADMIN_HISTORY_SESSION_KEY);
+  }catch(e){ /* 削除失敗は無視（best-effort） */ }
 }
 
 // 履歴の状態バナー（同期中・失敗）は必ずこの1枚だけにする。
@@ -4123,6 +4155,40 @@ async function loadHistory(){
       );
     }
     return;
+  }
+
+  // ★管理者：45秒以内のメモリキャッシュがまだ生きていれば、通信なしで即表示
+  if(isAdmin){
+    const memFresh = adminHistoryCache !== null && (Date.now() - adminHistoryCacheAt) < ADMIN_CACHE_FRESH_WINDOW_MS;
+    if(memFresh){
+      finalizeHistoryRecords(adminHistoryCache, isAdmin);
+      return;
+    }
+
+    // メモリが無い/古い場合は、同一セッション内の前回スナップショット（sessionStorage）があればまず表示し、裏で最新化する
+    const hasStaleSnapshot = adminHistoryCache !== null || loadAdminHistoryCacheFromSessionStorage();
+    if(hasStaleSnapshot){
+      finalizeHistoryRecords(adminHistoryCache, isAdmin); // 丸ごと再描画されるので、前回の状態バナーは自然に消える
+
+      setHistoryStatusBanner(list,
+        '前回データを表示中・最新情報を確認しています…',
+        'background:#f0f4f8;border:1px solid #cfd8e3;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#607080;'
+      );
+
+      try{
+        const fresh = await getAdminAllRecords(true);
+        finalizeHistoryRecords(fresh, isAdmin); // 履歴を丸ごと再描画するので、上の「確認中」表示も自然に消える
+      }catch(e){
+        // ★失敗しても、既に表示済みのスナップショットはそのまま残す
+        console.warn('管理者履歴の裏更新に失敗（表示中のスナップショットのまま）:', e);
+        setHistoryStatusBanner(list,
+          '⚠️ 最新情報の取得に失敗しました。前回取得した内容を表示しています。<button onclick="loadHistory()" style="display:block;margin-top:8px;padding:6px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;font-size:12px;cursor:pointer;">🔄 最新情報を再取得</button>',
+          'background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#e65100;'
+        );
+      }
+      return;
+    }
+    // 両方とも無ければ、下の従来どおりの取得（スピナー表示）に進む
   }
 
   // 従来通りの取得（キャッシュがまだ無い・管理者の場合）
