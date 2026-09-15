@@ -4041,10 +4041,42 @@ async function getAdminDashRecordsForMonth(month, force){
   }
 }
 
+// ===== 管理者専用：getSummaryの短時間メモリキャッシュ =====
+let adminSummaryCache = null;
+let adminSummaryCacheAt = 0;
+let adminSummaryFetchPromise = null;
+
+async function getAdminSummary(force){
+  const isFresh = adminSummaryCache !== null && (Date.now() - adminSummaryCacheAt) < ADMIN_CACHE_FRESH_WINDOW_MS;
+  if(adminSummaryCache !== null && !force && isFresh) return adminSummaryCache;
+
+  if(adminSummaryFetchPromise) return adminSummaryFetchPromise;
+
+  adminSummaryFetchPromise = (async () => {
+    const res = await fetchWithTimeout(GAS_URL + '?action=getSummary', 60000);
+    const json = await res.json();
+    if(json.result === 'success' && json.summary && Object.keys(json.summary).length > 0){
+      adminSummaryCache = json.summary;
+      adminSummaryCacheAt = Date.now();
+      return adminSummaryCache;
+    }
+    throw new Error(json.message || 'summary取得に失敗しました');
+  })();
+
+  try{
+    return await adminSummaryFetchPromise;
+  } finally {
+    adminSummaryFetchPromise = null;
+  }
+}
+
 // 管理者が案件を登録・編集・削除・担当変更したときに呼ぶ（短命キャッシュなので単純に破棄でよい）
 function invalidateAdminCaches(){
   adminHistoryCache = null;
   adminDashCacheByMonth = {};
+
+  adminSummaryCache = null;
+  adminSummaryCacheAt = 0;
 }
 
 // 履歴の状態バナー（同期中・失敗）は必ずこの1枚だけにする。
@@ -5600,18 +5632,11 @@ async function loadDash(){
   const thisMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
 
   if(isAdminDash){
-    // ① まずサマリーを取得して月ボタンを生成（軽い）
+    // ① まずサマリーを取得して月ボタンを生成（45秒キャッシュ・同時リクエスト共有つき）
     let summaryOk = false;
     try{
-      const res = await fetchWithTimeout(GAS_URL+'?action=getSummary', 60000);
-      const json = await res.json();
-      console.log('getSummary raw json =', json);
-      if(json.result==='success' && json.summary && Object.keys(json.summary).length > 0){
-        dashSummary = json.summary;
-        summaryOk = true;
-      } else {
-        console.warn('getSummary: empty or unexpected response, fallback to getAllRecords');
-      }
+      dashSummary = await getAdminSummary();
+      summaryOk = true;
     }catch(e){ console.warn('getSummary failed:', e); }
 
     if(summaryOk){
