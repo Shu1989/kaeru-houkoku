@@ -2128,8 +2128,8 @@ let myRecordsCache = null;
 let myRecordsCacheDirty = false;
 let myRecordsLastFetchedAt = 0;
 
-// 案件データのキャッシュは、メンバー・顧客マスタ（7日）より鮮度を優先し、短めの期限にする
-const MY_RECORDS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6時間
+// ★案件データのキャッシュ自体には有効期限を設けない（古くても「前回表示用」として使う）。
+//   鮮度の管理は、復元直後に必ずdirty=trueにして裏で最新化する、という形で別途行う。
 
 // 直近この時間内に正常取得できていれば、force=trueで呼ばれても再取得を省略する
 // （起動直後に取得したばかりのデータを、履歴・集計を開いた瞬間にまた取りに行く無駄を防ぐ）
@@ -2198,7 +2198,9 @@ function saveMyRecordsCacheToLocalStorage(){
 }
 
 // アプリ起動直後に呼び、前回のキャッシュがあれば即座に復元する
-// （復元したものは必ず「要再確認」扱いにし、裏で必ず最新化させる）
+// ★キャッシュの古さで「表示できるかどうか」を決めない。どれだけ古いデータでも
+//   「前回表示用」としてまず使い、鮮度の確認は常に裏側で別途行う（dirty=trueで必ず最新化させる）。
+//   これにより、案件データが無い状態（読み込み中…🐸で通信待ち）に陥る場面をできるだけ減らす。
 function loadMyRecordsCacheFromLocalStorage(){
   if(!currentUser || currentUser === 'admin') return false;
   try{
@@ -2206,12 +2208,8 @@ function loadMyRecordsCacheFromLocalStorage(){
     if(!raw) return false;
     const cached = JSON.parse(raw);
     if(!cached || !Array.isArray(cached.records)) return false;
-    if(!cached.savedAt || (Date.now() - cached.savedAt) > MY_RECORDS_CACHE_MAX_AGE_MS){
-      localStorage.removeItem('kaeru_cache_myrecords_' + currentUser); // 期限切れは破棄
-      return false;
-    }
     myRecordsCache = cached.records;
-    myRecordsCacheDirty = true; // 復元直後は必ず裏で最新化させる
+    myRecordsCacheDirty = true; // 復元直後は必ず裏で最新化させる（古さに関わらず一律）
     return true;
   }catch(e){ return false; }
 }
