@@ -5522,9 +5522,8 @@ async function saveEdit(){
   breakdown:updated.breakdown,
   subtotal: updated.subtotal,  // 案件小計
   distSubtotal:Number(typeof amt === 'object' ? amt.amount : amt || 0),  // ← 受取側の分配額
-  buZaiTotal: typeof amt === 'object' ? (amt.material||0) : 0,
-  buZai:[],
-  buZaiTotal:0
+  buZaiTotal: typeof amt === 'object' ? Number(amt.material || 0) : 0,
+  buZai: (typeof amt === 'object' && Number(amt.material || 0) > 0) ? [Number(amt.material || 0)] : []
 };
           const enc2=encodeURIComponent(JSON.stringify(subRec));
           await fetch(GAS_URL+'?data='+enc2);
