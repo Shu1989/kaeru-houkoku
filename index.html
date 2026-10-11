@@ -5424,6 +5424,12 @@ async function saveEdit(){
     alert('分配済み案件は編集保存できません。変更する場合は削除して再登録してください。');
     return;
   }
+    // ★顧客名が空なら保存しない（顧客欄が「顧客名を選択」に戻っていた場合の防止）
+  if(!document.getElementById('eClient').value){
+    alert('顧客名が選ばれていません。\n顧客名を選び直してから保存してください。');
+    document.getElementById('eClient').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
   const btn=document.getElementById('editSaveBtn');
   btn.disabled=true; btn.textContent='保存中...';
 
