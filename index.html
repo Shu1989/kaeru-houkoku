@@ -3622,7 +3622,11 @@ async function submitForm(){
   if(!client){showStatus('statusMsg','error','⚠️ 顧客名を選択してください');return;}
   if(!place){showStatus('statusMsg','error','⚠️ 場所を入力してください');return;}
   if(!work){showStatus('statusMsg','error','⚠️ 作業内容を1つ以上選択してください');return;}
-  if(subtotal===0){showStatus('statusMsg','error','⚠️ 内訳を入力してください');return;}
+    // ★小計0円は、確認してOKなら登録できる（無償対応など）
+  if(subtotal===0 && !confirm('小計が0円です。\n無償対応などの0円案件として登録しますか？')){
+    showStatus('statusMsg','error','⚠️ 内訳を入力してください');
+    return;
+  }
 
   const btn=document.getElementById('submitBtn');
   isSubmitting=true;
